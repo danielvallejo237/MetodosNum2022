@@ -6,10 +6,11 @@ Código escrito por Daniel Vallejo Aldana (danielvallejo237 on Github)
 #include<bits/stdc++.h>
 #include<cmath>
 #include"./fparser/fparser.hh"
+#include <ostream>
 
 using namespace std;
 
-double newtonmethod(FunctionParser fp,FunctionParser dfp,double x0,int max_iters=100,double tol=1e-8)
+double newtonmethod(FunctionParser fp,FunctionParser dfp,double x0,vector<double> &points,int max_iters=100,double tol=1e-8)
 {
   //Definimos el número máximo de iteraciones que se requieren en el algoritmo
   //De tolerancia definimos la raiz de epsilon para la tolerancia de nuestro algoritmo
@@ -18,6 +19,7 @@ double newtonmethod(FunctionParser fp,FunctionParser dfp,double x0,int max_iters
   a1[0]=x0;
   double aux=x0;
   int auxiter=max_iters;
+  points.push_back(a1[0]);
   do {
     /* Hacemos las primeras evaluaciones de x1 */
     aux=a1[0];
@@ -27,6 +29,7 @@ double newtonmethod(FunctionParser fp,FunctionParser dfp,double x0,int max_iters
         cout<<"Division por cero encontrada"<<endl;
         exit(1);
       }
+    points.push_back(a1[0]); //Regresamos el vector de datos
     }
   while(fabs(aux-a1[0])>tol && max_iters--);
   cout<<"Error |xt+1-xt|: "<<fabs(aux-a1[0])<<endl;
@@ -51,7 +54,10 @@ int main(int argc, char*argv[])
   dfp.AddConstant("e",2.718281828459);
   fp.Parse(argv[1],"x");
   dfp.Parse(argv[2],"x");
-  double sol=newtonmethod(fp,dfp,x1);
+  vector<double> Info;
+  double sol=newtonmethod(fp,dfp,x1,Info);
+  ofstream os{"puntos.txt"};
   cout<<"Raiz de la funcion: "<<sol<<endl;
+  for(vector<double>::iterator it=Info.begin();it!=Info.end();++it) os<<*it<<" ";
   return 0;
 }
