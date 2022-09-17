@@ -1,5 +1,5 @@
-
-/* Programación del método de Cholesky para matrices A definidas positivas
+/*
+Solución del problema elíptico unidimensional usando diferencias finitas para un determinado numero de nodos
 @Author Daniel Vallejo Aldana (danielvallejo237) on Github
 */
 
@@ -165,84 +165,97 @@ class Matrix
     }
 };
 
-pair<Matrix,bool> Cholesky(Matrix A)
+pair<Matrix,Matrix> BuildMatrixEliptical(double stepsize,int NNodes)
 {
-    //Implementación del método de cholesky
-    /* Recibe una matriz A y regresa una matriz L que posteriormente será transpuesta con la función transpose implementada*/
-    Matrix L(A.n,A.m);
-    double value=0;
-    if (A.get(0,0)<0) return make_pair(L,false);
-    L.put(0,0,sqrt(A.get(0,0)));
-    for(int j=1;j<L.n;j++) L.put(j,0,A.get(j,0)/L.get(0,0));
-    for(int i=1;i<L.n-1;i++)
+  //Construimos una matriz cuadrada de (NNodes-2 x NNodes-2) para estimar ese número de variables
+  Matrix S(NNodes-2,NNodes-2); //Inicializamos una matriz con 0's
+  Matrix b(NNodes-2,1); //Estimamos el vector b  para poder calcular la solucion
+  for(int i=0;i<(NNodes-2);i++)
+  {
+    if(i==0)
     {
-      value=0;
-      for(int k=0;k<i;k++) value+=L.get(i,k)*L.get(i,k);
-      if((A.get(i,i)-value)<0) return make_pair(L,false); //No se pudo hacer la factorización de Cholesky porque no es definida positiva
-      L.put(i,i,sqrt(A.get(i,i)-value));
-      for(int j=i+1;j<L.m;j++)
+      S.put(i,i,-2.0);
+      S.put(i,i+1,1.0);
+      b.put(i,0,2.0);
+    }
+    else if(i==NNodes-3)
+    {
+      S.put(i,i-1,1.0);
+      S.put(i,i,-2.0);
+      b.put(i,0,2-(2/(stepsize*stepsize)));
+    }
+    else
+    {
+      S.put(i,i,-2.0);
+      S.put(i,i-1,1.0);
+      S.put(i,i+1,1.0);
+      b.put(i,0,2.0);
+    }
+  }
+  S=S*(1/(stepsize*stepsize));
+  return make_pair(S,b);
+}
+
+
+pair<Matrix,bool> JacobiMethod(Matrix A, Matrix b, Matrix &XO, int MaxIter=1000, double TOL=1e-8)
+{
+    Matrix aux(XO.n,XO.m); //Inicializamos un vector auxiliar
+    Matrix aux2(XO.n,XO.m);
+    double value=0;
+    bool Flag=true;
+    int tmp=MaxIter;
+    while(MaxIter--)
+    {
+      //Hacemos el proceso de acuerdo al número de iteraciones
+      for(int i=0;i<A.n;i++)
       {
         value=0;
-        for(int k=0;k<i;k++) value+=L.get(j,k)*L.get(i,k);
-        L.put(j,i,(A.get(j,i)-value)/L.get(i,i));
+        for(int j=0;j<A.n;j++) if(j!=i) value+=A.get(i,j)*XO.get(j,0);
+        aux.put(i,0,(1/A.get(i,i))*(-value+b.get(i,0)));
       }
+      aux2=aux-XO;
+      if(aux2.norm()/aux.norm()<TOL) break; //Encontramos la solucion
+      else XO=aux;
     }
-    value=0;
-    for(int k=0;k<L.n-1;k++) value+=L.get(L.n-1,k)*L.get(L.n-1,k);
-    L.put(L.n-1,L.n-1,sqrt(A.get(A.n-1,A.n-1)-value));
-    return make_pair(L,true);
-}
-Matrix Forward_Substitution(Matrix A, Matrix b)
-{
-    vector<double> solutions(A.n);
-    solutions[0]=b.matrix[0]/A.matrix[0]; //Caso base y asumiendo que jamás encontraremos una división por cero
-    double value=0;
-    for(int i=1;i<A.n;i++)
-    {
-        //Iteramos sobre todos los renglones que tenemos de la matriz
-        for(int j=0;j<i;j++) value+=solutions[j]*A.matrix[i*A.m+j];
-        solutions[i]=(b.matrix[i]-value)/A.matrix[i*(A.m+1)];
-        value=0; //Regresamos a la inicialización del valor de valor
-    }
-    Matrix mat(solutions,A.n,1);
-    return mat; //Regresamos la matriz de solución con sustitución hacia adelante
-}
-Matrix Backward_Substitution(Matrix A, Matrix b)
-{
-    vector<double> solutions(A.n);
-    solutions[A.n-1]=b.matrix[A.n-1]/A.matrix[(A.n-1)*(A.m+1)]; //Caso base y asumiendo que jamás encontraremos una división por cero
-    double value=0;
-    for(int i=A.n-2;i>=0;i--)
-    {
-        //Iteramos sobre todos los renglones que tenemos de la matriz
-        for(int j=i+1; j<A.m;j++) value+=solutions[j]*A.matrix[i*A.m+j];
-        solutions[i]=(b.matrix[i]-value)/A.matrix[i*(A.m+1)];
-        value=0; //Regresamos a la inicialización del valor de valor
-    }
-    Matrix mat(solutions,A.n,1);
-    return mat; //Regresamos la matriz de solución con sustitución hacia adelante
+    if(MaxIter<=0) cout<<"Salida por maximo de iteraciones"<<endl,Flag=false;
+    else cout<<"Iteraciones necesarias: "<<tmp-MaxIter<<endl;
+    return make_pair(aux,Flag);
 }
 
-Matrix SolveUsingCholesky(Matrix A, Matrix b)
+vector<double> linspace(double low,double high, int N)
 {
-  Matrix S1,S2; //Solución del vector de matrices
-  pair<Matrix,bool> CHOL=Cholesky(A);
-  if(CHOL.second)
-  {
-    //La matriz se pudo factorizar por Cholesky
-    S1=Forward_Substitution(CHOL.first,b);
-    S2=Backward_Substitution(CHOL.first.Transpose(),S1);
-  }
-  return S2;
+  //Función auxiliar de linspace para equiespaciado de los puntos
+  vector<double> espaciado;
+  double step=(high-low)/(double)N;
+  for(int i=1;i<N-1;i++) espaciado.push_back(low+i*step);
+  return espaciado;
 }
 
-int main(int argv, char* argc[])
+Matrix EvaluateFunc(double(*fun)(double),double low, double high, int N)
 {
-    Matrix A(argc[1]); //Leer las dos matices desde archivos de texto
-    Matrix b(argc[2]);
-    pair<Matrix,bool> Ch=Cholesky(A);
-    //Ch.first.print_content();
-    Matrix S=SolveUsingCholesky(A,b);
-    S.print_to_text("SOLUCIONES_BIG.txt");
-    return 0;
+  vector<double> linsp=linspace(low,high,N);
+  Matrix M(N-2,1);
+  for(int i=0;i<linsp.size();i++) M.put(i,0,fun(linsp[i]));
+  return M;
+}
+
+double funcion(double x){return x*x+x;}
+
+int main(int argc, char const *argv[])
+{
+  //El unico argumento de entrada en este caso es el numero de nodos en el sistema
+  int Nnodos=atoi(argv[1]);
+  pair<Matrix,Matrix> Sistema=BuildMatrixEliptical(1.0/(double)Nnodos,Nnodos);
+  Matrix XO=Matrix(Nnodos-2,1);
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  start = std::chrono::system_clock::now();
+  pair<Matrix,bool> Soluciones=JacobiMethod(Sistema.first,Sistema.second,XO);
+  end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+  std::cout << "Tiempo transcurrido: " << elapsed_seconds.count() << "s\n";
+  Matrix Real=EvaluateFunc(funcion,0,1,Nnodos);
+  Matrix Error=Real-Soluciones.first;
+  cout<<"Error de estimacion: "<<Error.norm()/Real.norm()<<endl;
+  return 0;
 }

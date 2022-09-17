@@ -1,0 +1,35 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 4 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Solución del problema elíptico unidimensional
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+El archivo generado en esta tarea es el archivo
+ -> problema3.cpp
+ -> visualizacion.py (Archivo de graficación de visualizacion de la salida generada por el código en cpp)
+
+ Donde se encuentran las funciones necesarias para resolver dicho problema
+
+Indicaciones de compilación:
+
+g++ problema3.cpp
+
+Indicaciones de ejecucion
+
+./a.out (Numero de nodos del problema)
+python visualizacion.py --file (Archivo donde está la salida de la solución)

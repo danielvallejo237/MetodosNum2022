@@ -1,8 +1,3 @@
-
-/* Programación del método de Cholesky para matrices A definidas positivas
-@Author Daniel Vallejo Aldana (danielvallejo237) on Github
-*/
-
 #include<bits/stdc++.h>
 #include<cmath>
 #include<fstream>
@@ -122,6 +117,19 @@ class Matrix
       for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]*num;
       return Sol;
     }
+
+    vector<double> operator * (vector<double> const &obj)
+    {
+      vector<double> Sol(this->n,0);
+      for(int j=0;j<this->n;j++)
+      {
+          for(int i=0;i<this->m;i++)
+          {
+            Sol[j]+=get(j,i)*obj[i];
+          }
+        }
+      return Sol;
+    }
     Matrix operator - (Matrix const &obj)
     {
         Matrix Sol(obj.n,obj.m);
@@ -165,84 +173,35 @@ class Matrix
     }
 };
 
-pair<Matrix,bool> Cholesky(Matrix A)
+Matrix BuildMatrixEliptical(int NNodes)
 {
-    //Implementación del método de cholesky
-    /* Recibe una matriz A y regresa una matriz L que posteriormente será transpuesta con la función transpose implementada*/
-    Matrix L(A.n,A.m);
-    double value=0;
-    if (A.get(0,0)<0) return make_pair(L,false);
-    L.put(0,0,sqrt(A.get(0,0)));
-    for(int j=1;j<L.n;j++) L.put(j,0,A.get(j,0)/L.get(0,0));
-    for(int i=1;i<L.n-1;i++)
-    {
-      value=0;
-      for(int k=0;k<i;k++) value+=L.get(i,k)*L.get(i,k);
-      if((A.get(i,i)-value)<0) return make_pair(L,false); //No se pudo hacer la factorización de Cholesky porque no es definida positiva
-      L.put(i,i,sqrt(A.get(i,i)-value));
-      for(int j=i+1;j<L.m;j++)
-      {
-        value=0;
-        for(int k=0;k<i;k++) value+=L.get(j,k)*L.get(i,k);
-        L.put(j,i,(A.get(j,i)-value)/L.get(i,i));
-      }
-    }
-    value=0;
-    for(int k=0;k<L.n-1;k++) value+=L.get(L.n-1,k)*L.get(L.n-1,k);
-    L.put(L.n-1,L.n-1,sqrt(A.get(A.n-1,A.n-1)-value));
-    return make_pair(L,true);
-}
-Matrix Forward_Substitution(Matrix A, Matrix b)
-{
-    vector<double> solutions(A.n);
-    solutions[0]=b.matrix[0]/A.matrix[0]; //Caso base y asumiendo que jamás encontraremos una división por cero
-    double value=0;
-    for(int i=1;i<A.n;i++)
-    {
-        //Iteramos sobre todos los renglones que tenemos de la matriz
-        for(int j=0;j<i;j++) value+=solutions[j]*A.matrix[i*A.m+j];
-        solutions[i]=(b.matrix[i]-value)/A.matrix[i*(A.m+1)];
-        value=0; //Regresamos a la inicialización del valor de valor
-    }
-    Matrix mat(solutions,A.n,1);
-    return mat; //Regresamos la matriz de solución con sustitución hacia adelante
-}
-Matrix Backward_Substitution(Matrix A, Matrix b)
-{
-    vector<double> solutions(A.n);
-    solutions[A.n-1]=b.matrix[A.n-1]/A.matrix[(A.n-1)*(A.m+1)]; //Caso base y asumiendo que jamás encontraremos una división por cero
-    double value=0;
-    for(int i=A.n-2;i>=0;i--)
-    {
-        //Iteramos sobre todos los renglones que tenemos de la matriz
-        for(int j=i+1; j<A.m;j++) value+=solutions[j]*A.matrix[i*A.m+j];
-        solutions[i]=(b.matrix[i]-value)/A.matrix[i*(A.m+1)];
-        value=0; //Regresamos a la inicialización del valor de valor
-    }
-    Matrix mat(solutions,A.n,1);
-    return mat; //Regresamos la matriz de solución con sustitución hacia adelante
-}
-
-Matrix SolveUsingCholesky(Matrix A, Matrix b)
-{
-  Matrix S1,S2; //Solución del vector de matrices
-  pair<Matrix,bool> CHOL=Cholesky(A);
-  if(CHOL.second)
+  //Construimos una matriz cuadrada de (NNodes-2 x NNodes-2) para estimar ese número de variables
+  Matrix S(NNodes-2,NNodes-2); //Inicializamos una matriz con 0's
+  for(int i=0;i<(NNodes-2);i++)
   {
-    //La matriz se pudo factorizar por Cholesky
-    S1=Forward_Substitution(CHOL.first,b);
-    S2=Backward_Substitution(CHOL.first.Transpose(),S1);
+    if(i==0)
+    {
+      S.put(i,i,-2.0);
+      S.put(i,i+1,1.0);
+    }
+    else if(i==NNodes-3)
+    {
+      S.put(i,i-1,1.0);
+      S.put(i,i,-2.0);
+    }
+    else
+    {
+      S.put(i,i,-2.0);
+      S.put(i,i-1,1.0);
+      S.put(i,i+1,1.0);
+    }
   }
-  return S2;
+  return S;
 }
 
-int main(int argv, char* argc[])
+int main(int argv, char *argc[])
 {
-    Matrix A(argc[1]); //Leer las dos matices desde archivos de texto
-    Matrix b(argc[2]);
-    pair<Matrix,bool> Ch=Cholesky(A);
-    //Ch.first.print_content();
-    Matrix S=SolveUsingCholesky(A,b);
-    S.print_to_text("SOLUCIONES_BIG.txt");
-    return 0;
+  Matrix p=BuildMatrixEliptical(atoi(argc[1]));
+  p.print_to_text("MatrizPrueba.txt");
+  return 0;
 }

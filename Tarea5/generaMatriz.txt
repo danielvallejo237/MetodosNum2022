@@ -1,0 +1,30 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 5 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo iterativo de Jacobi para resolver sistemas de ecuaciones
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+generaMatriz.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+
+Instrucciones de compilación:
+
+g++ generaMatriz.cpp
+
+Instrucciones de ejecución:
+
+./a.out (Numero de nodos de la matriz a generar + 2 por las variables libres)

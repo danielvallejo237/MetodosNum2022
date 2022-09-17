@@ -1,5 +1,5 @@
-
-/* Programación del método de Cholesky para matrices A definidas positivas
+/*
+Solución del problema elíptico unidimensional usando diferencias finitas para un determinado numero de nodos
 @Author Daniel Vallejo Aldana (danielvallejo237) on Github
 */
 
@@ -165,6 +165,37 @@ class Matrix
     }
 };
 
+pair<Matrix,Matrix> BuildMatrixEliptical(double stepsize,int NNodes)
+{
+  //Construimos una matriz cuadrada de (NNodes-2 x NNodes-2) para estimar ese número de variables
+  Matrix S(NNodes-2,NNodes-2); //Inicializamos una matriz con 0's
+  Matrix b(NNodes-2,1); //Estimamos el vector b  para poder calcular la solucion
+  for(int i=0;i<(NNodes-2);i++)
+  {
+    if(i==0)
+    {
+      S.put(i,i,-2.0);
+      S.put(i,i+1,1.0);
+      b.put(i,0,2.0);
+    }
+    else if(i==NNodes-3)
+    {
+      S.put(i,i-1,1.0);
+      S.put(i,i,-2.0);
+      b.put(i,0,2-(2/(stepsize*stepsize)));
+    }
+    else
+    {
+      S.put(i,i,-2.0);
+      S.put(i,i-1,1.0);
+      S.put(i,i+1,1.0);
+      b.put(i,0,2.0);
+    }
+  }
+  S=S*(1/(stepsize*stepsize));
+  return make_pair(S,b);
+}
+
 pair<Matrix,bool> Cholesky(Matrix A)
 {
     //Implementación del método de cholesky
@@ -188,7 +219,7 @@ pair<Matrix,bool> Cholesky(Matrix A)
       }
     }
     value=0;
-    for(int k=0;k<L.n-1;k++) value+=L.get(L.n-1,k)*L.get(L.n-1,k);
+    for(int k=0;k<L.n;k++) value+=L.get(L.n-1,k)*L.get(L.n-1,k);
     L.put(L.n-1,L.n-1,sqrt(A.get(A.n-1,A.n-1)-value));
     return make_pair(L,true);
 }
@@ -235,14 +266,39 @@ Matrix SolveUsingCholesky(Matrix A, Matrix b)
   }
   return S2;
 }
-
-int main(int argv, char* argc[])
+vector<double> linspace(double low,double high, int N)
 {
-    Matrix A(argc[1]); //Leer las dos matices desde archivos de texto
-    Matrix b(argc[2]);
-    pair<Matrix,bool> Ch=Cholesky(A);
-    //Ch.first.print_content();
-    Matrix S=SolveUsingCholesky(A,b);
-    S.print_to_text("SOLUCIONES_BIG.txt");
-    return 0;
+  //Función auxiliar de linspace para equiespaciado de los puntos
+  vector<double> espaciado;
+  double step=(high-low)/(double)N;
+  for(int i=1;i<N-1;i++) espaciado.push_back(low+i*step);
+  return espaciado;
+}
+
+Matrix EvaluateFunc(double(*fun)(double),double low, double high, int N)
+{
+  vector<double> linsp=linspace(low,high,N);
+  Matrix M(N-2,1);
+  for(int i=0;i<linsp.size();i++) M.put(i,0,fun(linsp[i]));
+  return M;
+}
+
+double funcion(double x){return x*x+x;}
+
+int main(int argc, char const *argv[])
+{
+  //El unico argumento de entrada en este caso es el numero de nodos en el sistema
+  int Nnodos=atoi(argv[1]);
+  pair<Matrix,Matrix> Sistema=BuildMatrixEliptical(1.0/(double)Nnodos,Nnodos);
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  start = std::chrono::system_clock::now();
+  Matrix Soluciones=SolveUsingCholesky(Sistema.first*-1.0,Sistema.second*-1.0);
+  end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+  std::cout << "Tiempo transcurrido: " << elapsed_seconds.count() << "s\n";
+  Matrix Real=EvaluateFunc(funcion,0,1,Nnodos);
+  Matrix Error=Real-Soluciones;
+  cout<<"Error de estimacion: "<<Error.norm()/Real.norm()<<endl;
+  return 0;
 }
