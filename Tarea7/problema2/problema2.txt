@@ -1,0 +1,31 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 7 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo de iteración en subespacio inverso para el cálculo de los m valores y vectores propios más grandes
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+problema2.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+(file)+"_Eigenvals_SubspaceInvIt.txt" -> Archivo donde se guardan los valores propios de la matriz que se dió de entrada al problema
+(file)+"_Eigenvecs_SubspaceInvIt.txt" -> Archivo donde se guardan los vectores propios de la matriz que se dió de entrada al problema
+Instrucciones de compilación:
+
+g++ problema2.cpp
+
+Instrucciones de ejecución:
+
+./a.out (Path donde se encuentra la matriz de prueba) (Numero Valores)

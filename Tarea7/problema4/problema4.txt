@@ -1,0 +1,30 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 7 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del método de factorización QR
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+problema4.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+(file)+"_SolucionesQR.txt" -> Archivo donde se guardan las soluciones a la matriz (file) 
+Instrucciones de compilación:
+
+g++ problema4.cpp
+
+Instrucciones de ejecución:
+
+./a.out (Path donde se encuentra la matriz de prueba) (Path del vector b)

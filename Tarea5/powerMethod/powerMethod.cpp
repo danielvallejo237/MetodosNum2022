@@ -237,7 +237,7 @@ pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL
     double err=1000000;
     double mu;
     normalizeVector(v0);
-    while(err>TOL && maxiter--)
+    while(err>TOL)
     {
       v1=A*v0;
       lambda=computeLambda(v0,v1,A);
