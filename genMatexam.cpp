@@ -255,8 +255,8 @@ class Matrix
 
 pair<Matrix,Matrix> GenExamMat()
 {
-  Matrix A(5000,5000);
-  Matrix b(5000,1);
+  Matrix A(500,500);
+  Matrix b(500,1);
   A.put(0,0,40);
   A.put(0,1,-8);
   A.put(0,2,-4);
@@ -266,18 +266,18 @@ pair<Matrix,Matrix> GenExamMat()
   A.put(1,3,-4);
   b.put(0,0,20);
   b.put(1,0,50);
-  b.put(4998,0,50);
-  b.put(4999,0,20);
-  A.put(4998,4996,-4);
-  A.put(4998,4997,-8);
-  A.put(4998,4998,40);
-  A.put(4998,4999,-8);
-  A.put(4999,4997,-4);
-  A.put(4999,4998,-8);
-  A.put(4999,4999,40);
+  b.put(498,0,50);
+  b.put(499,0,20);
+  A.put(498,496,-4);
+  A.put(498,497,-8);
+  A.put(498,498,40);
+  A.put(498,499,-8);
+  A.put(499,497,-4);
+  A.put(499,498,-8);
+  A.put(499,499,40);
   vector<double> c={-4,-8,40,-8,-4};
   int counter;
-  for(int i=2;i<4998;i++)
+  for(int i=2;i<498;i++)
   {
     counter=0;
     for(int j=(i-2);j<=(i+2);j++)

@@ -234,6 +234,13 @@ vector<double> restaVecs(vector<double> v, vector<double> v2)
   for(int i=0;i<v.size();i++) aux[i]=v[i]-v2[i];
   return aux;
 }
+
+vector<double> operator * (const vector<double>& v1, double v2)
+{
+    vector<double> v3(v1.size());
+    for(int i=0;i<v1.size();i++) v3[i]=v1[i]*v2;
+    return v3;
+}
 vector<double> Proyecta(vector<double> v1, vector<double> v2)
 {
   vector<double> aux(v2.size());
@@ -348,7 +355,7 @@ vector<double> SolveLU(Matrix L, Matrix U, vector<double> x)
   return sal;
 }
 //pair<vector<double>,double>
-pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,int maxiter=10000,double TOL=1e-8)
+pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,int maxiter=10000,double TOL=1e-4)
 {
   vector<double> v1;
   double lambda=10000000;
@@ -357,11 +364,11 @@ pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,int 
   vector<double> aux(v0.size(),0);
   normalizeVector(v0);
   pair<pair<Matrix,Matrix>,double> S=LUDecomposition(A);
-  while(err>TOL && maxiter--)
+  while(err>TOL)
   {
     v1=SolveLU(S.first.first,S.first.second,v0);
     lambda=computeLambda(v0,v1,A);
-    err=norm2(restaVecs(v1,v0));
+    err=fabs(lambda-old_lambda);
     old_lambda=lambda;
     normalizeVector(v1);
     v0=v1;
@@ -369,7 +376,7 @@ pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,int 
   return make_pair(v1,lambda);
 }
 
-pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,vector<vector<double>> M,int ind,int maxiter=10000,double TOL=1e-8)
+pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,vector<vector<double>> M,int ind,int maxiter=10000,double TOL=1e-4)
 {
   vector<double> v1;
   double lambda=10000000;
@@ -378,7 +385,7 @@ pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,vector<ve
   vector<double> aux(v0.size(),0);
   normalizeVector(v0);
   pair<pair<Matrix,Matrix>,double> S=LUDecomposition(A);
-  while(err>TOL && maxiter--)
+  while(err>TOL)
   {
     fill(aux.begin(),aux.end(),0);
     for(int i=0;i<ind;i++)
@@ -387,7 +394,7 @@ pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,vector<ve
     }
     v1=SolveLU(S.first.first,S.first.second,restaVecs(v0,aux));
     lambda=computeLambda(v0,v1,A);
-    err=norm2(restaVecs(v1,v0));
+    err=fabs(lambda-old_lambda);
     old_lambda=lambda;
     normalizeVector(v1);
     v0=v1;
@@ -414,19 +421,15 @@ void ComputeEigs(Matrix A, int Numvals)
   P[0]=out.first;
   vector<double> vec;
   eigs[0]=out.second;
+  cout<<"Eigenvalue 1: "<<eigs[0]<<endl;
+  cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   for(int i=1;i<Numvals;i++)
   {
     out=IthInversePower(get_column(A,i),A,P,i);
     P[i]=out.first;
     eigs[i]=out.second;
-  }
-  for(int k=0;k<Numvals;k++)
-  {
-    cout<<"Eigenvalue: "<<eigs[k]<<endl;
-    cout<<"Eigenvector: "<<endl;
-    printVec(P[k]);
-    vec=restaVecs(A*P[k],escalarDot(eigs[k],P[k]));
-    cout<<"Error: "<<norm2(vec)<<endl;
+    cout<<"Eigenvalue "<<(i+1)<<": "<<out.second<<endl;
+    cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   }
 }
 

@@ -9,6 +9,10 @@
 #include<string>
 #include<ctime>
 #include<chrono>
+#include<omp.h>
+
+#define MAX_NUM_THREADS 3
+
 using namespace std;
 
 //Incluimos las mismas librerías que en el problema anterior
@@ -110,6 +114,7 @@ class Matrix
       if(this->n==obj.n && this->m==obj.m)
       {
           //Tienen que tener las mismas dimensiones
+          #pragma omp parallel for
           for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]+obj.matrix[i];
       }
       return Sol;
@@ -125,6 +130,7 @@ class Matrix
     vector<double> operator * (vector<double> const &obj)
     {
       vector<double> Sol(this->n,0);
+      #pragma omp parallel for
       for(int j=0;j<this->n;j++)
       {
           for(int i=0;i<this->m;i++)
@@ -140,6 +146,7 @@ class Matrix
         if(this->n==obj.n && this->m==obj.m)
         {
             //Tienen que tener las mismas dimensiones
+            #pragma omp parallel for
             for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]-obj.matrix[i];
         }
         return Sol;
@@ -181,6 +188,7 @@ double norm2(vector<double> v)
 {
   //regresa la norma al cuadrado del
   double suma=0;
+  #pragma omp parallel for reduction(+:suma)
   for(int i=0;i<v.size();i++) suma+=v[i]*v[i];
   return suma;
 }
@@ -195,8 +203,10 @@ Matrix VectorMult(vector<double> v1, vector<double> v2)
 void normalizeVector(vector<double> &vec)
 {
   double norma=0;
+  #pragma omp parallel for reduction(+:norma)
   for(int i=0;i<vec.size();i++) norma+=vec[i]*vec[i];
   norma=sqrt(norma);
+  #pragma omp parallel for
   for(int i=0;i<vec.size();i++) vec[i]/=norma;
 }
 double infiniteNorm(vector<double> vec)
@@ -214,6 +224,7 @@ double getmax(vector<double> vec)
 double multiplyVec(vector<double> a,vector<double> b)
 {
   double c=0;
+  #pragma omp parallel for reduction(+:c)
   for(int i=0;i<a.size();i++) c+=a[i]*b[i];
   return c;
 }
@@ -225,10 +236,20 @@ double computeLambda(vector<double> v, vector<double> v2,Matrix A)
 vector<double> restaVecs(vector<double> v, vector<double> v2)
 {
   vector<double> aux(v.size(),0);
+  #pragma omp parallel for
   for(int i=0;i<v.size();i++) aux[i]=v[i]-v2[i];
   return aux;
 }
-pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=1e-8,int maxiter=1000)
+
+vector<double> operator * (const vector<double>& v1, double v2)
+{
+    vector<double> v3(v1.size());
+    #pragma omp parallel for
+    for(int i=0;i<v1.size();i++) v3[i]=v1[i]*v2;
+    return v3;
+}
+
+pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=1e-4,int maxiter=1000)
 {
    //Esto calcula el valor propio y el vector propio más grande asociado
     vector<double> v1;
@@ -241,7 +262,7 @@ pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL
     {
       v1=A*v0;
       lambda=computeLambda(v0,v1,A);
-      err=norm2(restaVecs(v1,v0));
+      err=fabs(lambda-old_lambda);
       old_lambda=lambda;
       normalizeVector(v1);
       v0=v1;
@@ -254,6 +275,7 @@ vector<double> Proyecta(vector<double> v1, vector<double> v2)
   vector<double> aux(v2.size());
   double norma=norm2(v2);
   double prod=multiplyVec(v1,v2);
+  #pragma omp parallel for
   for(int i=0;i<v1.size();i++) aux[i]=(prod/norma)*v2[i];
   return aux;
 }
@@ -283,7 +305,7 @@ vector<double> get_column(Matrix A, int i)
   return Col;
 }
 
-pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=1e-8,int maxiter=1000)
+pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=1e-4,int maxiter=1000)
 {
   vector<double> v1;
   double lambda=10000000;
@@ -291,7 +313,7 @@ pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<d
   double err=1000000;
   vector<double> aux(v0.size(),0);
   normalizeVector(v0);
-  while(err>TOL && maxiter--)
+  while(err>TOL)
   {
     fill(aux.begin(),aux.end(),0);
     for(int i=0;i<ind;i++)
@@ -300,7 +322,7 @@ pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<d
     }
     v1=A*restaVecs(v0,aux);
     lambda=computeLambda(v0,v1,A);
-    err=norm2(restaVecs(v1,v0));
+    err=fabs(lambda-old_lambda);
     old_lambda=lambda;
     normalizeVector(v1);
     v0=v1;
@@ -329,25 +351,22 @@ void ComputeEigs(Matrix A, int Numvals)
   P[0]=out.first;
   eigs[0]=out.second;
   vector<double> vec;
+  cout<<"Eigenvalue 1: "<<eigs[0]<<endl;
+  cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   for(int i=1;i<Numvals;i++)
   {
     out=GeiIthEig(get_column(A,A.n-i-1),A,P,i);
     P[i]=out.first;
     eigs[i]=out.second;
-  }
-  for(int k=0;k<Numvals;k++)
-  {
-    cout<<"Eigenvalue: "<<eigs[k]<<endl;
-    cout<<"Eigenvector: "<<endl;
-    printVec(P[k]);
-    vec=restaVecs(A*P[k],escalarDot(eigs[k],P[k]));
-    cout<<"Error: "<<norm2(vec)<<endl;
+    cout<<"Eigenvalue "<<(i+1)<<": "<<out.second<<endl;
+    cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   }
 }
 
 int main(int argc, char* argv[])
 {
   Matrix A(argv[1]);
+  omp_set_num_threads(MAX_NUM_THREADS);
   ComputeEigs(A,atoi(argv[2]));
   return 0;
 }
