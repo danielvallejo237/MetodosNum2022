@@ -9,6 +9,9 @@
 #include<string>
 #include<ctime>
 #include<chrono>
+#include<omp.h>
+
+#define MAX_NUM_THREADS 4
 using namespace std;
 
 //Incluimos las mismas librerías que en el problema anterior
@@ -181,6 +184,7 @@ double norm2(vector<double> v)
 {
   //regresa la norma al cuadrado del
   double suma=0;
+  #pragma omp parallel for reduction (+:suma)
   for(int i=0;i<v.size();i++) suma+=v[i]*v[i];
   return suma;
 }
@@ -188,6 +192,7 @@ double norm2(vector<double> v)
 Matrix VectorMult(vector<double> v1, vector<double> v2)
 {
   Matrix M((int)v1.size(),(int)v2.size());
+  #pragma omp parallel for
   for(int i=0;i<v1.size();i++) for(int j=0;j<v2.size();j++) M.put(i,j,v1[i]*v2[j]);
   return M;
 }
@@ -195,8 +200,10 @@ Matrix VectorMult(vector<double> v1, vector<double> v2)
 void normalizeVector(vector<double> &vec)
 {
   double norma=0;
+  #pragma omp parallel for reduction(+:norma)
   for(int i=0;i<vec.size();i++) norma+=vec[i]*vec[i];
   norma=sqrt(norma);
+  #pragma omp parallel for
   for(int i=0;i<vec.size();i++) vec[i]/=norma;
 }
 double infiniteNorm(vector<double> vec)
@@ -220,6 +227,7 @@ double getmin(vector<double> vec)
 double multiplyVec(vector<double> a,vector<double> b)
 {
   double c=0;
+  #pragma omp parallel for reduction (+:c)
   for(int i=0;i<a.size();i++) c+=a[i]*b[i];
   return c;
 }
@@ -231,6 +239,7 @@ double computeLambda(vector<double> v, vector<double> v2,Matrix A)
 vector<double> restaVecs(vector<double> v, vector<double> v2)
 {
   vector<double> aux(v.size(),0);
+  #pragma omp parallel for
   for(int i=0;i<v.size();i++) aux[i]=v[i]-v2[i];
   return aux;
 }
@@ -238,6 +247,7 @@ vector<double> restaVecs(vector<double> v, vector<double> v2)
 vector<double> operator * (const vector<double>& v1, double v2)
 {
     vector<double> v3(v1.size());
+    #pragma omp parallel for
     for(int i=0;i<v1.size();i++) v3[i]=v1[i]*v2;
     return v3;
 }
@@ -246,6 +256,7 @@ vector<double> Proyecta(vector<double> v1, vector<double> v2)
   vector<double> aux(v2.size());
   double norma=norm2(v2);
   double prod=multiplyVec(v1,v2);
+  #pragma omp parallel for
   for(int i=0;i<v1.size();i++) aux[i]=(prod/norma)*v2[i];
   return aux;
 }
@@ -253,6 +264,7 @@ vector<double> Proyecta(vector<double> v1, vector<double> v2)
 vector<double> SumaVecs(vector<double> v1, vector<double> v2)
 {
   vector<double> aux(v1.size(),0);
+  #pragma omp parallel for
   for(int i=0;i<v1.size();i++) aux[i]=v1[i]+v2[i];
   return aux;
 }
@@ -271,6 +283,7 @@ void printInfo(pair<vector<vector<double>>,vector<double>> Info)
 vector<double> get_column(Matrix A, int i)
 {
   vector<double> Col(A.n,0);
+  #pragma omp parallel for
   for (int j=0;j<A.n;j++) Col[j]=A.get(i,j);
   return Col;
 }
