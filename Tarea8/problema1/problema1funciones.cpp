@@ -6,8 +6,7 @@
 #include<string>
 #include<ctime>
 #include<chrono>
-
-#define MAX_NUM_THREADS 3 // Podemos cambiar el numero de hilos de acuerdo a la computadora pero en este caso usaremos solo 2
+ // Podemos cambiar el numero de hilos de acuerdo a la computadora pero en este caso usaremos solo 2
 
 using namespace std;
 
@@ -80,13 +79,11 @@ class Matrix
     void swap_row(int a, int b)
     {
         //Funcion para cambiar los renglones de la matriz en caso de pivoteo
-        #pragma omp parallel for
         for(int i=0;i<this->m;i++) swap(matrix[this->m*a+i],this->matrix[this->m*b+i]);
     }
     Matrix Transpose()
     {
         vector<double> T(this->n*this->m);
-        #pragma omp parallel for
         for(int i=0;i<this->n;i++)for(int j=0;j<this->m;j++) T[j*this->n+i]=this->matrix[i*this->m+j];
         Matrix M(T,this->m,this->n);
         return M;
@@ -109,7 +106,6 @@ class Matrix
       Matrix Sol(obj.n,obj.m);
       if(this->n==obj.n && this->m==obj.m)
       {
-          #pragma omp parallel for
           //Tienen que tener las mismas dimensiones
           for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]+obj.matrix[i];
       }
@@ -119,7 +115,6 @@ class Matrix
     {
       //Necesitamos definir la multiplicación por un escalar
       Matrix Sol(this->n,this->m);
-      #pragma omp parallel for
       for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]*num;
       return Sol;
     }
@@ -127,7 +122,6 @@ class Matrix
     vector<double> operator * (vector<double> const &obj)
     {
       vector<double> Sol(this->n,0);
-      #pragma omp parallel for
       for(int j=0;j<this->n;j++)
       {
           for(int i=0;i<this->m;i++)
@@ -143,7 +137,6 @@ class Matrix
         if(this->n==obj.n && this->m==obj.m)
         {
             //Tienen que tener las mismas dimensiones
-            #pragma omp parallel for
             for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]-obj.matrix[i];
         }
         return Sol;
@@ -225,7 +218,6 @@ class Matrix
     vector<vector<double>> GetColumns()
     {
       vector<vector<double>> C(this->m,vector<double> (this->n));
-      #pragma omp parallel for
       for (int j=0;j<this->m;j++) for(int i=0;i<this->n;i++) C[j][i]=get(i,j);
       return C;
     }
@@ -234,7 +226,6 @@ class Matrix
       this->matrix.resize(M[0].size()*M.size());
       this->n=M[0].size();
       this->m=M.size();
-      #pragma omp parallel for
       for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(j,i,M[i][j]);
     }
     void fromRows(vector<vector<double>> M)
@@ -242,7 +233,6 @@ class Matrix
       this->matrix.resize(M[0].size()*M.size());
       this->n=M.size();
       this->m=M[0].size();
-      #pragma omp parallel for
       for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(i,j,M[i][j]);
     }
 };
@@ -443,17 +433,17 @@ Matrix SolveQR(Matrix A, Matrix b)
 
 double g1(double x)
 {
-    return sin(x); //La linea que queremos interpolar
+    return cos(x); //La linea que queremos interpolar
 }
 
 double g2(double x)
 {
-  return sqrt(exp(x));
+  return sqrt(7*exp(x));
 }
 
 double g3(double x)
 {
-  return x;
+  return x*x;
 }
 
 double Combine(double(*g1)(double),double(*g2)(double),double(*g3)(double),double  x)
@@ -466,17 +456,15 @@ vector<double> Linspace(double initRange, double endRange, int N)
 {
   double Stepsize=(endRange-initRange)/(double)N;
   vector<double> points(N+1);
-  #pragma omp parallel for
   for (int i=0;i<N+1;i++) points[i]=initRange+i*Stepsize;
   return points;
 }
 
-pair<vector<double>,vector<double>> GenerateFunctionPairsModified(double InitRange, double EndRange, int Npoints)
+pair<vector<double>,vector<double>> GenerateFunctionPairsModified(double(*f)(double),double InitRange, double EndRange, int Npoints)
 {
   vector<double> ls=Linspace(InitRange,EndRange,Npoints);
   vector<double> fs(ls.size());
-  #pragma omp parallel for
-  for(int i=0;i<Npoints+1;i++)fs[i]=Combine(&g1,&g2,&g3,ls[i]);
+  for(int i=0;i<Npoints+1;i++)fs[i]=f(ls[i]);
   return make_pair(ls,fs);
 }
 
@@ -485,7 +473,6 @@ pair<pair<Matrix,Matrix>,bool> BuildLeastSquareMatrixModified(vector<double> X, 
   bool flag=false;
   Matrix A(X.size(),3);
   Matrix B(X.size(),1);
-  #pragma omp parallel for
   for (int i=0;i<X.size();i++)
   {
     B.put(i,0,Y[i]);
@@ -511,10 +498,9 @@ Matrix operator * (Matrix A,Matrix B)
   }
   return C;
 }
-
-vector<double> SolveUsingLSModified(double InitRange, double EndRange, int Npoints)
+vector<double> SolveUsingLSModified(double(*f)(double) ,double InitRange, double EndRange, int Npoints)
 {
-  pair<vector<double>,vector<double>> P=GenerateFunctionPairsModified(InitRange,EndRange,Npoints);
+  pair<vector<double>,vector<double>> P=GenerateFunctionPairsModified(f,InitRange,EndRange,Npoints);
   pair<pair<Matrix,Matrix>,bool> LS=BuildLeastSquareMatrixModified(P.first,P.second,&g1,&g2,&g3);
   Matrix A;
   Matrix B;
@@ -542,7 +528,6 @@ Matrix ToInterpolate(double Init, double End, vector<double> coef,double(*g1)(do
 {
   double StepSize=(End-Init)/(double)(1000-1);
   Matrix S(1000,2);
-  #pragma omp parallel for
   for(int i=0;i<1000;i++)
   {
     S.put(i,0,Init+i*StepSize);
@@ -554,7 +539,6 @@ Matrix ToInterpolate(double Init, double End, vector<double> coef,double(*g1)(do
 vector<double> EvalFNCombine(double(*g1)(double),double(*g2)(double),double(*g3)(double),vector<double> X)
 {
   vector<double> F(X.size());
-  #pragma parallel for
   for (int i=0;i<X.size();i++)
   {
     F[i]=Combine(g1,g2,g3,X[i]);
@@ -562,12 +546,16 @@ vector<double> EvalFNCombine(double(*g1)(double),double(*g2)(double),double(*g3)
   return F;
 }
 
+double Constant(double x)
+{
+  return 3.45*sin(x)+2.5*sqrt(exp(x))-3*x;
+}
+
 int main(int argc, char * argv[])
 {
   //definimos el numero de hilos que vamos a usar
-  omp_set_num_threads(MAX_NUM_THREADS);
   //Lo anterior es para paralelización de los métodos
-  vector<double> Coef=SolveUsingLSModified(atof(argv[1]),atof(argv[2]),atoi(argv[3]));
+  vector<double> Coef=SolveUsingLSModified(&Constant,atof(argv[1]),atof(argv[2]),atoi(argv[3]));
   cout<<"Coeficientes encontrados"<<endl;
   for (auto c: Coef) cout<<c<<" ";
   cout<<endl;
@@ -575,7 +563,7 @@ int main(int argc, char * argv[])
   P=ToInterpolate(atof(argv[1]),atof(argv[2]),Coef,&g1,&g2,&g3);
   vector<vector<double>> Cols=P.GetColumns();
   vector<double> FE=EvalFNCombine(&g1,&g2,&g3,Cols[0]);
-  cout<<"||f-fhat||: "<<Norm(Cols[1]-FE)<<endl;
-  P.print_to_text("SalidaInterpolFunctions.txt");
+  cout<<"||f-fhat||: "<<Norm(Cols[1]-FE)/atof(argv[3])<<endl;
+  P.print_to_text("SalidaInterpolFunctions"+string(argv[3])+"_puntos.txt");
   return 0;
 }

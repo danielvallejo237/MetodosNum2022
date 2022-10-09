@@ -80,13 +80,11 @@ class Matrix
     void swap_row(int a, int b)
     {
         //Funcion para cambiar los renglones de la matriz en caso de pivoteo
-        #pragma omp parallel for
         for(int i=0;i<this->m;i++) swap(matrix[this->m*a+i],this->matrix[this->m*b+i]);
     }
     Matrix Transpose()
     {
         vector<double> T(this->n*this->m);
-        #pragma omp parallel for
         for(int i=0;i<this->n;i++)for(int j=0;j<this->m;j++) T[j*this->n+i]=this->matrix[i*this->m+j];
         Matrix M(T,this->m,this->n);
         return M;
@@ -109,7 +107,6 @@ class Matrix
       Matrix Sol(obj.n,obj.m);
       if(this->n==obj.n && this->m==obj.m)
       {
-          #pragma omp parallel for
           //Tienen que tener las mismas dimensiones
           for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]+obj.matrix[i];
       }
@@ -119,7 +116,6 @@ class Matrix
     {
       //Necesitamos definir la multiplicación por un escalar
       Matrix Sol(this->n,this->m);
-      #pragma omp parallel for
       for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]*num;
       return Sol;
     }
@@ -127,7 +123,6 @@ class Matrix
     vector<double> operator * (vector<double> const &obj)
     {
       vector<double> Sol(this->n,0);
-      #pragma omp parallel for
       for(int j=0;j<this->n;j++)
       {
           for(int i=0;i<this->m;i++)
@@ -143,7 +138,6 @@ class Matrix
         if(this->n==obj.n && this->m==obj.m)
         {
             //Tienen que tener las mismas dimensiones
-            #pragma omp parallel for
             for(int i=0;i<this->n*this->m;i++) Sol.matrix[i]=this->matrix[i]-obj.matrix[i];
         }
         return Sol;
@@ -225,7 +219,6 @@ class Matrix
     vector<vector<double>> GetColumns()
     {
       vector<vector<double>> C(this->m,vector<double> (this->n));
-      #pragma omp parallel for
       for (int j=0;j<this->m;j++) for(int i=0;i<this->n;i++) C[j][i]=get(i,j);
       return C;
     }
@@ -234,7 +227,6 @@ class Matrix
       this->matrix.resize(M[0].size()*M.size());
       this->n=M[0].size();
       this->m=M.size();
-      #pragma omp parallel for
       for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(j,i,M[i][j]);
     }
     void fromRows(vector<vector<double>> M)
@@ -242,7 +234,6 @@ class Matrix
       this->matrix.resize(M[0].size()*M.size());
       this->n=M.size();
       this->m=M[0].size();
-      #pragma omp parallel for
       for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(i,j,M[i][j]);
     }
 };
@@ -451,11 +442,15 @@ double Cube(double x)
   return 3.23*(x*x*x)-0.25*(x*x)-10*x +12.47;
 }
 
+double Constant(double x)
+{
+  return 3.45*sin(x)+2.5*sqrt(exp(x))-3*x;
+}
+
 vector<double> Linspace(double initRange, double endRange, int N)
 {
   double Stepsize=(endRange-initRange)/(double)N;
   vector<double> points(N+1);
-  #pragma omp parallel for
   for (int i=0;i<N+1;i++) points[i]=initRange+i*Stepsize;
   return points;
 }
@@ -464,110 +459,76 @@ pair<vector<double>,vector<double>> GenerateFunctionPairs(double(*f)(double),dou
 {
   vector<double> ls=Linspace(InitRange,EndRange,Npoints);
   vector<double> fs(ls.size());
-  #pragma omp parallel for
   for(int i=0;i<Npoints+1;i++)fs[i]=f(ls[i]);
   return make_pair(ls,fs);
 }
 
-pair<pair<Matrix,Matrix>,bool> BuildLeastSquareMatrix(vector<double> X, vector<double> Y, int degree)
+vector<double> FiniteDiff(vector<double> X,vector<double> Y)
 {
-  bool flag=false;
-  Matrix A(X.size(),degree+1);
-  Matrix B(X.size(),1);
-  if (X.size()<degree+1) return make_pair(make_pair(A,B),flag);
-  #pragma omp parallel for
-  for (int i=0;i<X.size();i++)
+  vector<vector<double>> F(X.size(),vector<double> (X.size(),0));
+  for(int i=0;i<X.size();i++)
   {
-    B.put(i,0,Y[i]);
-    for(int j=0;j<=degree;j++) A.put(i,j,pow(X[i],j));
+    F[i][0]=Y[i];
   }
-  return make_pair(make_pair(A,B),true);
-}
-
-Matrix operator * (Matrix A,Matrix B)
-{
-  Matrix C(A.n,B.m); //The shape of the new matrix
-  double suma=0;
-  for(int i=0;i<C.n;i++)
+  for(int i=1;i<X.size();i++)
   {
-    for(int j=0;j<C.m;j++)
+    for(int j=1;j<=i;j++)
     {
-      suma=0;
-      for(int k=0;k<A.m;k++) suma+=A.get(i,k)*B.get(k,j);
-      C.put(i,j,suma);
+      F[i][j]=(F[i][j-1]-F[i-1][j-1])/(X[i]-X[i-j]);
     }
+  }
+  vector<double> C(X.size());
+  for(int i=0;i<X.size();i++)
+  {
+    C[i]=F[i][i];
   }
   return C;
 }
 
-vector<double> SolveUsingLS(double(*f)(double),double InitRange, double EndRange, int Npoints,int degree)
+double InterpolateX(double x, vector<double> Coef, vector<double> X)
 {
-  pair<vector<double>,vector<double>> P=GenerateFunctionPairs(f,InitRange,EndRange,Npoints);
-  pair<pair<Matrix,Matrix>,bool> LS=BuildLeastSquareMatrix(P.first,P.second,degree);
-  Matrix A;
-  Matrix B;
-  Matrix C;
-  if(LS.second)
+  double res;
+  double prod;
+  res=Coef[0];
+  for(int i=1;i<Coef.size();i++)
   {
-    //Si el Booleano no es falso
-    A=LS.first.first.Transpose()*LS.first.first;
-    B=LS.first.first.Transpose()*LS.first.second;
-    C=SolveQR(A,B);
-  }
-  vector<double> Sol;
-  Sol=C.ToVector();
-  return Sol;
-}
-
-double Reconstruct(double x, vector<double> A)
-{
-  double res=0;
-  for(int i=0;i<A.size();i++)
-  {
-    res+=(A[i]*pow(x,i));
+    prod=1;
+    for(int j=0;j<i;j++) prod*=(x-X[j]);
+    res+=Coef[i]*prod;
   }
   return res;
 }
 
-Matrix ToInterpolate(double Init, double End, vector<double> coef)
+vector<double> EvalFN(double(*f)(double),vector<double> X)
 {
-  double StepSize=(End-Init)/(double)(1000-1);
-  Matrix S(1000,2);
-  #pragma omp parallel for
-  for(int i=0;i<1000;i++)
+  vector<double> F(X.size());
+  for (int i=0;i<X.size();i++)
   {
-    S.put(i,0,Init+i*StepSize);
-    S.put(i,1,Reconstruct(Init+i*StepSize,coef));
+    F[i]=f(X[i]);
   }
-  return S;
+  return F;
 }
 
-Matrix ComputeDividedDifferences(vector<double> X, vector<double> Y)
+Matrix InterpolateRange(double Init, double End, int Mesh, vector<double> X, vector<double> Y)
 {
-  Matrix DD(X.size(),X.size());
-  #pragma omp parallel for
-  for(int i=0;i<X.size();i++) DD.put(i,0,Y[i]); //La funcion solamente
-  #pragma omp parallel for
-  for(int i=1;i<X.size();i++)
+  vector<double> Puntos=Linspace(Init,End,Mesh);
+  vector<double>  C=FiniteDiff(X,Y);
+  Matrix A(Puntos.size(),2);
+  for(int i=0;i<Puntos.size();i++)
   {
-    for(int j=0; j<X.size()-i;j++)
-    {
-      DD.put(j,i,(DD.get(j,i-1)-DD.get(j+1,i-1))/(X[j]-X[i+j]));
-    }
+    A.put(i,0,Puntos[i]);
+    A.put(i,1,InterpolateX(Puntos[i],C,X));
   }
-  return DD;
-}
-
-void NewtonPol(double (*f)(double),double Init, double End, int Npoints)
-{
-  pair<vector<double>,vector<double>> K=GenerateFunctionPairs(f,Init,End,Npoints);
-  Matrix Dif=ComputeDividedDifferences(K.first,K.second);
-  Dif.print_content();
+  return A;
 }
 
 int main(int argc, char *argv[])
 {
-  omp_set_num_threads(MAX_NUM_THREADS);
-  NewtonPol(&Cube,atof(argv[1]),atof(argv[2]),atoi(argv[3]));
+  pair<vector<double>,vector<double>> XY=GenerateFunctionPairs(&Constant,atof(argv[1]),atof(argv[2]),atoi(argv[3]));
+  Matrix Int=InterpolateRange(atof(argv[1]),atof(argv[2]),atoi(argv[4]),XY.first,XY.second);
+  Int.print_to_text("Polinomio_Newton_con_"+string(argv[4])+"_puntos_de_"+string(argv[3])+"_grados.txt");
+  vector<vector<double>> Cols=Int.GetColumns();
+  vector<double> FE=EvalFN(&Constant,Cols[0]);
+  cout<<"||f-fNewton||: "<<Norm(Cols[1]-FE)/atof(argv[4])<<endl;
   return 0;
 }

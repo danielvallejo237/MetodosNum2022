@@ -1,4 +1,7 @@
-#include <omp.h>
+/*Algoritmo de la potencia Inversa implementado para matrices simétricas */
+
+//@Author Daniel Vallejo Aldana, (danielvallejo237) on Github
+
 #include<bits/stdc++.h>
 #include<cmath>
 #include<fstream>
@@ -6,8 +9,12 @@
 #include<string>
 #include<ctime>
 #include<chrono>
+#include<omp.h>
 
+#define MAX_NUM_THREADS 4
 using namespace std;
+
+//Incluimos las mismas librerías que en el problema anterior
 
 class Matrix
 {
@@ -89,11 +96,11 @@ class Matrix
     }
     double get(int row,int col)
     {
-        return matrix[row*m+col];
+        return this->matrix[row*this->m+col];
     }
     void put(int row, int col, double value)
     {
-        this->matrix[row*m+col]=value;
+        this->matrix[row*this->m+col]=value;
     }
     pair<int,int> shape()
     {
@@ -121,6 +128,7 @@ class Matrix
     vector<double> operator * (vector<double> const &obj)
     {
       vector<double> Sol(this->n,0);
+      #pragma omp parallel for
       for(int j=0;j<this->n;j++)
       {
           for(int i=0;i<this->m;i++)
@@ -171,70 +179,115 @@ class Matrix
         }
         return norma;
     }
-    void ones(int n)
-    {
-      this->n=n;
-      this->m=n;
-      vector<double> aux(n*n,1.0);
-      this->matrix=aux;
-    }
-    void eye(int n)
-    {
-      this->n=n;
-      this->m=n;
-      vector<double> aux(n*n,0.0);
-      this->matrix=aux;
-      for (int i=0;i<n;i++) this->matrix[i*m+i]=1.0;
-    }
-    void normalize(int dim)
-    {
-      //We normalize the vectors along a given dimension
-      if(dim==1)
-      {
-        for(int i=0;i<m;i++)
-        {
-          double suma=0;
-          for(int j=0;j<n;j++) suma+=get(j,i)*get(j,i);
-          suma=sqrt(suma);
-          for(int j=0;j<n;j++) put(j,i,get(j,i)/suma);
-        }
-      }
-      else
-      {
-        for(int i=0;i<n;i++)
-        {
-          double suma=0;
-          for(int j=0;j<m;j++) suma+=get(i,j)*get(i,j);
-          suma=sqrt(suma);
-          for(int j=0;j<m;j++) put(i,j,get(i,j)/suma);
-        }
-      }
-    }
-    vector<double> ToVector()
-    {
-      return this->matrix;
-    }
-    vector<vector<double>> GetColumns()
-    {
-      vector<vector<double>> C(this->m,vector<double> (this->n));
-      for (int j=0;j<this->m;j++) for(int i=0;i<this->n;i++) C[j][i]=get(i,j);
-      return C;
-    }
-    void fromCols(vector<vector<double>> M)
-    {
-      this->matrix.resize(M[0].size()*M.size());
-      this->n=M[0].size();
-      this->m=M.size();
-      for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(j,i,M[i][j]);
-    }
-    void fromRows(vector<vector<double>> M)
-    {
-      this->matrix.resize(M[0].size()*M.size());
-      this->n=M.size();
-      this->m=M[0].size();
-      for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(i,j,M[i][j]);
-    }
 };
+
+double norm2(vector<double> v)
+{
+  //regresa la norma al cuadrado del
+  double suma=0;
+  #pragma omp parallel for reduction (+:suma)
+  for(int i=0;i<v.size();i++) suma+=v[i]*v[i];
+  return suma;
+}
+
+Matrix VectorMult(vector<double> v1, vector<double> v2)
+{
+  Matrix M((int)v1.size(),(int)v2.size());
+  #pragma omp parallel for
+  for(int i=0;i<v1.size();i++) for(int j=0;j<v2.size();j++) M.put(i,j,v1[i]*v2[j]);
+  return M;
+}
+
+void normalizeVector(vector<double> &vec)
+{
+  double norma=0;
+  #pragma omp parallel for reduction(+:norma)
+  for(int i=0;i<vec.size();i++) norma+=vec[i]*vec[i];
+  norma=sqrt(norma);
+  #pragma omp parallel for
+  for(int i=0;i<vec.size();i++) vec[i]/=norma;
+}
+double infiniteNorm(vector<double> vec)
+{
+  double norma=fabs(vec[0]);
+  for(int i=0;i<vec.size();i++) if(fabs(vec[i])>norma) norma=fabs(vec[i]);
+  return norma;
+}
+double getmax(vector<double> vec)
+{
+  double norma=fabs(vec[0]);
+  for(int i=0;i<vec.size();i++) if(fabs(vec[i])>norma) norma=vec[i];
+  return norma;
+}
+double getmin(vector<double> vec)
+{
+  double norma=fabs(vec[0]);
+  for(int i=0;i<vec.size();i++) if(fabs(vec[i])<norma) norma=vec[i];
+  return norma;
+}
+double multiplyVec(vector<double> a,vector<double> b)
+{
+  double c=0;
+  #pragma omp parallel for reduction (+:c)
+  for(int i=0;i<a.size();i++) c+=a[i]*b[i];
+  return c;
+}
+double computeLambda(vector<double> v, vector<double> v2,Matrix A)
+{
+  double denom=multiplyVec(v,A*v);
+  return denom;
+}
+vector<double> restaVecs(vector<double> v, vector<double> v2)
+{
+  vector<double> aux(v.size(),0);
+  #pragma omp parallel for
+  for(int i=0;i<v.size();i++) aux[i]=v[i]-v2[i];
+  return aux;
+}
+
+vector<double> operator * (const vector<double>& v1, double v2)
+{
+    vector<double> v3(v1.size());
+    #pragma omp parallel for
+    for(int i=0;i<v1.size();i++) v3[i]=v1[i]*v2;
+    return v3;
+}
+vector<double> Proyecta(vector<double> v1, vector<double> v2)
+{
+  vector<double> aux(v2.size());
+  double norma=norm2(v2);
+  double prod=multiplyVec(v1,v2);
+  #pragma omp parallel for
+  for(int i=0;i<v1.size();i++) aux[i]=(prod/norma)*v2[i];
+  return aux;
+}
+
+vector<double> SumaVecs(vector<double> v1, vector<double> v2)
+{
+  vector<double> aux(v1.size(),0);
+  #pragma omp parallel for
+  for(int i=0;i<v1.size();i++) aux[i]=v1[i]+v2[i];
+  return aux;
+}
+
+void printInfo(pair<vector<vector<double>>,vector<double>> Info)
+{
+  for (int i=0;i<Info.second.size();i++)
+  {
+    cout<<"Eigenvalue: "<<Info.second[i]<<endl;
+    cout<<"Corresponding eigenvector: "<<endl;
+    for(int j=0;j<Info.first[i].size();j++) cout<<Info.first[i][j]<<" ";
+    cout<<endl;
+  }
+}
+
+vector<double> get_column(Matrix A, int i)
+{
+  vector<double> Col(A.n,0);
+  #pragma omp parallel for
+  for (int j=0;j<A.n;j++) Col[j]=A.get(i,j);
+  return Col;
+}
 
 Matrix Forward_Substitution(Matrix A, Matrix b)
 {
@@ -315,244 +368,87 @@ vector<double> SolveLU(Matrix L, Matrix U, vector<double> x)
   sal=s2.matrix;
   return sal;
 }
-
-void normalizeVector(vector<double> &v)
+//pair<vector<double>,double>
+pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,int maxiter=10000,double TOL=1e-4)
 {
-  double norm=0.0;
-  for(int i=0;i<v.size();i++) norm+=v[i]*v[i];
-  norm=sqrt(norm);
-  for(int i=0;i<v.size();i++) v[i]/=norm; //La modificación de los vectore es in place
-}
-
-double DotProd(vector<double> v1,vector<double> v2)
-{
-  double dot;
-  for(int i=0;i<v1.size();i++) dot+=v1[i]*v2[i];
-  return dot;
-}
-
-vector<double> operator-(const vector<double>& v1, const vector<double>& v2)
-{
-    vector<double> v3(v1.size());
-    for(int i=0;i<v1.size();i++) v3[i]=v1[i]-v2[i];
-    return v3;
-}
-
-vector<double> operator+(const vector<double>& v1, const vector<double>& v2)
-{
-    vector<double> v3(v1.size());
-    for(int i=0;i<v1.size();i++) v3[i]=v1[i]+v2[i];
-    return v3;
-}
-
-vector<double> operator * (const vector<double>& v1, double v2)
-{
-    vector<double> v3(v1.size());
-    for(int i=0;i<v1.size();i++) v3[i]=v1[i]*v2;
-    return v3;
-}
-
-double operator * (const vector<double>& v1,const vector<double>& v2)
-{
-  double dot=0;
-  for(int i=0;i<v1.size();i++) dot+=v1[i]*v2[i];
-  return dot;
-}
-
-vector<double> proyecta (const vector<double>& v1,const vector<double> &v2)
-{
-  //Calculamos la proyección de un vector sobre otro
-  double num=v1*v2;
-  double denom=v2*v2;
-  vector<double> sal=v2*(num/denom);
-  return sal;
-}
-
-double Norm(const vector<double>& v1)
-{
-  double norma=0;
-  for(int i=0;i<v1.size();i++) norma+=v1[i]*v1[i];
-  return sqrt(norma); //Calcular la norma del vector
-}
-
-void Orthonormalize(vector<vector<double>> &M)
-{
-  //Proceso de ortonormalización de gram schmidt para una matriz simétrica, deberían de
-  // ser los vectores propios
-  for (int i=1;i<M.size();i++)
+  vector<double> v1;
+  double lambda=10000000;
+  double old_lambda=100000000;
+  double err=1000000;
+  vector<double> aux(v0.size(),0);
+  normalizeVector(v0);
+  while(err>TOL)
   {
-    for(int j=0;j<i;j++)
+    v1=SolveLU(L,U,v0);
+    lambda=computeLambda(v0,v1,A);
+    err=fabs(lambda-old_lambda);
+    old_lambda=lambda;
+    normalizeVector(v1);
+    v0=v1;
+  }
+  return make_pair(v1,lambda);
+}
+
+pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,vector<vector<double>> M,int ind,int maxiter=10000,double TOL=1e-4)
+{
+  vector<double> v1;
+  double lambda=10000000;
+  double old_lambda=100000000;
+  double err=1000000;
+  vector<double> aux(v0.size(),0);
+  normalizeVector(v0);
+  while(err>TOL)
+  {
+    fill(aux.begin(),aux.end(),0);
+    for(int i=0;i<ind;i++)
     {
-      M[i]=M[i]-proyecta(M[i],M[j]);
+      aux=SumaVecs(aux,Proyecta(v0,M[i]));
     }
+    v1=SolveLU(L,U,restaVecs(v0,aux));
+    lambda=computeLambda(v0,v1,A);
+    err=fabs(lambda-old_lambda);
+    old_lambda=lambda;
+    normalizeVector(v1);
+    v0=v1;
   }
-  for(int i=0;i<M.size();i++)
+  return make_pair(v1,lambda);
+}
+void printVec(vector<double> v)
+{
+  for(vector<double>::iterator it=v.begin();it!=v.end();++it) cout<<*it<<" ";
+  cout<<endl;
+}
+vector<double> escalarDot(double l, vector<double> a)
+{
+  vector<double> aux(a.size(),0);
+  for(int i=0;i<aux.size();++i) aux[i]=l*a[i];
+  return aux;
+}
+
+void ComputeEigs(Matrix A, int Numvals)
+{
+  vector<vector<double>> P(Numvals,vector<double> (A.m));
+  vector<double> eigs(Numvals);
+  pair<pair<Matrix,Matrix>,bool> LU=LUDecomposition(A);
+  pair<vector<double>,double> out=GetFirstInversePower(get_column(A,0),A,LU.first.first,LU.first.second);
+  P[0]=out.first;
+  vector<double> vec;
+  eigs[0]=out.second;
+  cout<<"Eigenvalue 1: "<<eigs[0]<<endl;
+  cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
+  for(int i=1;i<Numvals;i++)
   {
-    normalizeVector(M[i]);
+    out=IthInversePower(get_column(A,i),A,LU.first.first,LU.first.second,P,i);
+    P[i]=out.first;
+    eigs[i]=out.second;
+    cout<<"Eigenvalue "<<(i+1)<<": "<<out.second<<endl;
+    cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   }
 }
 
-vector<vector<double>> Copy(vector<vector<double>> M)
+int main(int argv, char* argc[])
 {
-  vector<vector<double>> MC(M.size(),vector<double> (M[0].size()));
-  for(int i=0;i<M.size();i++) for(int j=0;j<M[0].size();j++) MC[i][j]=M[i][j];
-  return MC;
-}
-
-vector<vector<double>> ComputeR(vector<vector<double>> Basis, vector<vector<double>> Obasis)
-{
-  vector<vector<double>> R(Obasis[0].size(),vector<double> (Obasis.size()));
-  for(int i=0;i<R.size();i++) for(int j=0;j<=i;j++) R[j][i]=Obasis[j]*Basis[i];
-  return R;
-}
-
-pair<Matrix,Matrix> QR(Matrix A)
-{
-  vector<vector<double>> B,OB,RM;
-  OB=A.GetColumns();
-  B=Copy(OB);
-  Orthonormalize(OB);
-  RM=ComputeR(B,OB);
-  Matrix Q,R;
-  Q.fromCols(OB);
-  R.fromRows(RM);
-  return make_pair(Q,R);
-}
-
-Matrix SolveQR(Matrix A, Matrix b)
-{
-  pair<Matrix,Matrix> QRDEC=QR(A);
-  vector<double> tmp;
-  tmp=QRDEC.first.Transpose()*b.ToVector();
-  Matrix s(tmp,A.n,1);
-  Matrix Sol;
-  Sol=Backward_Substitution(QRDEC.second,s);
-  return Sol;
-}
-
-double Line(double x)
-{
-    return 14*x+4; //La linea que queremos interpolar
-}
-
-double Cube(double x)
-{
-  return 3.23*(x*x*x)-0.25*(x*x)-10*x +12.47;
-}
-
-vector<double> Linspace(double initRange, double endRange, int N)
-{
-  double Stepsize=(endRange-initRange)/(double)N;
-  vector<double> points(N+1);
-  for (int i=0;i<N+1;i++) points[i]=initRange+i*Stepsize;
-  return points;
-}
-
-pair<vector<double>,vector<double>> GenerateFunctionPairs(double(*f)(double),double InitRange, double EndRange, int Npoints)
-{
-  vector<double> ls=Linspace(InitRange,EndRange,Npoints);
-  vector<double> fs(ls.size());
-  for(int i=0;i<Npoints+1;i++)fs[i]=f(ls[i]);
-  return make_pair(ls,fs);
-}
-
-pair<pair<Matrix,Matrix>,bool> BuildLeastSquareMatrix(vector<double> X, vector<double> Y, int degree)
-{
-  bool flag=false;
-  Matrix A(X.size(),degree+1);
-  Matrix B(X.size(),1);
-  if (X.size()<degree+1) return make_pair(make_pair(A,B),flag);
-  for (int i=0;i<X.size();i++)
-  {
-    B.put(i,0,Y[i]);
-    for(int j=0;j<=degree;j++) A.put(i,j,pow(X[i],j));
-  }
-  return make_pair(make_pair(A,B),true);
-}
-
-Matrix operator * (Matrix A,Matrix B)
-{
-  Matrix C(A.n,B.m); //The shape of the new matrix
-  double suma=0;
-  for(int i=0;i<C.n;i++)
-  {
-    for(int j=0;j<C.m;j++)
-    {
-      suma=0;
-      for(int k=0;k<A.m;k++) suma+=A.get(i,k)*B.get(k,j);
-      C.put(i,j,suma);
-    }
-  }
-  return C;
-}
-
-vector<double> SolveUsingLS(double(*f)(double),double InitRange, double EndRange, int Npoints,int degree)
-{
-  pair<vector<double>,vector<double>> P=GenerateFunctionPairs(f,InitRange,EndRange,Npoints);
-  pair<pair<Matrix,Matrix>,bool> LS=BuildLeastSquareMatrix(P.first,P.second,degree);
-  Matrix A;
-  Matrix B;
-  Matrix C;
-  if(LS.second)
-  {
-    //Si el Booleano no es falso
-    A=LS.first.first.Transpose()*LS.first.first;
-    B=LS.first.first.Transpose()*LS.first.second;
-    C=SolveQR(A,B);
-  }
-  vector<double> Sol;
-  Sol=C.ToVector();
-  return Sol;
-}
-
-double Reconstruct(double x, vector<double> A)
-{
-  double res=0;
-  for(int i=0;i<A.size();i++)
-  {
-    res+=(A[i]*pow(x,i));
-  }
-  return res;
-}
-
-Matrix ToInterpolate(double Init, double End, vector<double> coef)
-{
-  double StepSize=(End-Init)/(double)(1000-1);
-  Matrix S(1000,2);
-  for(int i=0;i<1000;i++)
-  {
-    S.put(i,0,Init+i*StepSize);
-    S.put(i,1,Reconstruct(Init+i*StepSize,coef));
-  }
-  return S;
-}
-
-vector<double> EvalFN(double(*f)(double),vector<double> X)
-{
-  vector<double> F(X.size());
-  for (int i=0;i<X.size();i++)
-  {
-    F[i]=f(X[i]);
-  }
-  return F;
-}
-
-double Constant(double x)
-{
-  return 3.45*sin(x)+2.5*sqrt(exp(x))-3*x;
-}
-
-int main(int argc, char * argv[])
-{
-  //definimos el numero de hilos que vamos a usar
-  //Lo anterior es para paralelización de los métodos
-  //Initrange endrange Npoints degree
-  vector<double> Coef=SolveUsingLS(&Constant,atof(argv[1]),atof(argv[2]),atoi(argv[3]),atoi(argv[4]));
-  Matrix P;
-  P=ToInterpolate(atof(argv[1]),atof(argv[2]),Coef);
-  vector<vector<double>> Cols=P.GetColumns();
-  vector<double> FE=EvalFN(&Cube,Cols[0]);
-  cout<<"||f-fhat||: "<<Norm(Cols[1]-FE)/atof(argv[3])<<endl;
-  P.print_to_text("SalidaInterpol_"+string(argv[3])+"_puntos_"+string(argv[4])+"_grados.txt");
+  Matrix A(argc[1]);
+  ComputeEigs(A,atoi(argc[2]));
   return 0;
 }
