@@ -1,4 +1,3 @@
-#include <omp.h>
 #include<bits/stdc++.h>
 #include<cmath>
 #include<fstream>
@@ -6,8 +5,10 @@
 #include<string>
 #include<ctime>
 #include<chrono>
-
 using namespace std;
+
+// Usamos la misma clase matriz que hemos usado a lo largo del curso para
+//poder resolver el método de jacobi
 
 class Matrix
 {
@@ -220,6 +221,12 @@ class Matrix
       for (int j=0;j<this->m;j++) for(int i=0;i<this->n;i++) C[j][i]=get(i,j);
       return C;
     }
+    vector<vector<double>> GetMColumns(int numCols)
+    {
+      vector<vector<double>> C(numCols,vector<double> (this->n));
+      for (int j=0;j<numCols;j++) for(int i=0;i<this->n;i++) C[j][i]=get(i,j);
+      return C;
+    }
     void fromCols(vector<vector<double>> M)
     {
       this->matrix.resize(M[0].size()*M.size());
@@ -233,6 +240,11 @@ class Matrix
       this->n=M.size();
       this->m=M[0].size();
       for(int i=0;i<M.size();i++) for (int j=0;j<M[0].size();j++) put(i,j,M[i][j]);
+    }
+    Matrix deepcopy()
+    {
+      Matrix CP(this->matrix,n,m);
+      return CP;
     }
 };
 
@@ -399,160 +411,108 @@ vector<vector<double>> Copy(vector<vector<double>> M)
   return MC;
 }
 
-vector<vector<double>> ComputeR(vector<vector<double>> Basis, vector<vector<double>> Obasis)
+void GetJustDiagonal(Matrix &M)
 {
-  vector<vector<double>> R(Obasis[0].size(),vector<double> (Obasis.size()));
-  for(int i=0;i<R.size();i++) for(int j=0;j<=i;j++) R[j][i]=Obasis[j]*Basis[i];
+  vector<double> D(M.n);
+  for(int i=0;i<M.n;i++) D[i]=M.get(i,i);
+  M.matrix=D;
+  M.m=1;
+}
+
+Matrix MultiplyMat(Matrix A, Matrix B)
+{
+  Matrix R(A.n,B.m); //La dimensión de la nueva matriz
+  double carry=0.0;
+  if(A.m==B.n)
+  {
+    for(int i=0;i<R.n;i++)
+    {
+      for(int j=0;j<R.m;j++)
+      {
+        carry=0.0;
+        for(int k=0;k<A.m;k++) carry+=A.get(i,k)*B.get(k,j);
+        R.put(i,j,carry);
+      }
+    }
+  }
   return R;
 }
 
-pair<Matrix,Matrix> QR(Matrix A)
+double maxOOD(Matrix A)
 {
-  vector<vector<double>> B,OB,RM;
-  OB=A.GetColumns();
-  B=Copy(OB);
-  Orthonormalize(OB);
-  RM=ComputeR(B,OB);
-  Matrix Q,R;
-  Q.fromCols(OB);
-  R.fromRows(RM);
-  return make_pair(Q,R);
+  double max=-1000000;
+  for(int i=1;i<A.n-1;i++) for(int j=i+1;j<A.m;j++) if(fabs(A.get(i,j))>max) max=fabs(A.get(i,j));
+  return max;
 }
 
-Matrix SolveQR(Matrix A, Matrix b)
+
+double MaxD(Matrix A)
 {
-  pair<Matrix,Matrix> QRDEC=QR(A);
-  vector<double> tmp;
-  tmp=QRDEC.first.Transpose()*b.ToVector();
-  Matrix s(tmp,A.n,1);
-  Matrix Sol;
-  Sol=Backward_Substitution(QRDEC.second,s);
-  return Sol;
+  double max=-1000000;
+  for(int i=0;i<A.n;i++) if (fabs(A.get(i,i))>max) max=fabs(A.get(i,i));
+  return max;
 }
 
-double Line(double x)
+Matrix ExtractDiagonal(Matrix &U)
 {
-    return 14*x+4; //La linea que queremos interpolar
-}
-
-double Cube(double x)
-{
-  return 3.23*(x*x*x)-0.25*(x*x)-10*x +12.47;
-}
-
-vector<double> Linspace(double initRange, double endRange, int N)
-{
-  double Stepsize=(endRange-initRange)/(double)N;
-  vector<double> points(N+1);
-  for (int i=0;i<N+1;i++) points[i]=initRange+i*Stepsize;
-  return points;
-}
-
-pair<vector<double>,vector<double>> GenerateFunctionPairs(double(*f)(double),double InitRange, double EndRange, int Npoints)
-{
-  vector<double> ls=Linspace(InitRange,EndRange,Npoints);
-  vector<double> fs(ls.size());
-  for(int i=0;i<Npoints+1;i++)fs[i]=f(ls[i]);
-  return make_pair(ls,fs);
-}
-
-pair<pair<Matrix,Matrix>,bool> BuildLeastSquareMatrix(vector<double> X, vector<double> Y, int degree)
-{
-  bool flag=false;
-  Matrix A(X.size(),degree+1);
-  Matrix B(X.size(),1);
-  if (X.size()<degree+1) return make_pair(make_pair(A,B),flag);
-  for (int i=0;i<X.size();i++)
-  {
-    B.put(i,0,Y[i]);
-    for(int j=0;j<=degree;j++) A.put(i,j,pow(X[i],j));
-  }
-  return make_pair(make_pair(A,B),true);
-}
-
-Matrix operator * (Matrix A,Matrix B)
-{
-  Matrix C(A.n,B.m); //The shape of the new matrix
-  double suma=0;
-  for(int i=0;i<C.n;i++)
-  {
-    for(int j=0;j<C.m;j++)
+    vector<double> Diagonal(U.n);
+    for(int i=0;i<U.n;i++)
     {
-      suma=0;
-      for(int k=0;k<A.m;k++) suma+=A.get(i,k)*B.get(k,j);
-      C.put(i,j,suma);
+        Diagonal[i]=U.matrix[i*U.m+i];
+        for (int j=i;j<U.m;j++) U.matrix[i*U.m+j]=U.matrix[i*U.m+j]/Diagonal[i];
     }
-  }
-  return C;
+    Matrix M(U.n,U.n);
+    for(int i=0;i<U.n;i++) M.put(i,i,Diagonal[i]);
+    return M;
 }
 
-vector<double> SolveUsingLS(double(*f)(double),double InitRange, double EndRange, int Npoints,int degree)
+pair<pair<Matrix,pair<Matrix,Matrix>>,bool> LDUFactorization(Matrix &A)
 {
-  pair<vector<double>,vector<double>> P=GenerateFunctionPairs(f,InitRange,EndRange,Npoints);
-  pair<pair<Matrix,Matrix>,bool> LS=BuildLeastSquareMatrix(P.first,P.second,degree);
-  Matrix A;
+    //Es basicamente hacer factorización LU con pasos extra y mínima ganancia al hacerlo pero fine
+    pair<pair<Matrix,Matrix>,bool> LUDEC=LUDecomposition(A);
+    Matrix D=ExtractDiagonal(LUDEC.first.second);
+    return make_pair(make_pair(LUDEC.first.first,make_pair(D,LUDEC.first.second)),LUDEC.second);
+}
+
+void InverseDiagonal(Matrix &D)
+{
+  for(int i=0;i<D.n;i++) D.matrix[i*D.m+i]=1/D.matrix[i*D.m+i];
+}
+
+void ChangeOffDiagonalSign(Matrix &BB,int type)
+{
+  if (type==1)
+  {
+    //Lower triangular
+    for(int i=1;i<BB.n;i++) for(int j=0;j<i;j++) BB.matrix[i*BB.m+j]=-1*BB.matrix[i*BB.m+j];
+  }
+  else
+  {
+    for(int i=0;i<BB.n-1;i++) for(int j=(i+1);j<BB.m;j++) {BB.matrix[i*BB.m+j]=-1*BB.matrix[i*BB.m+j];}
+  }
+}
+
+int main(int argc, char *argv[])
+{
+  Matrix A(argv[1]);
+  pair<pair<Matrix,pair<Matrix,Matrix>>,bool>  Mat=LDUFactorization(A);
+  if(!Mat.second)
+  {
+    cout<<"Matriz no invertible"<<endl;
+    exit(1);
+  }
   Matrix B;
+  ChangeOffDiagonalSign(Mat.first.first,1);
+  ChangeOffDiagonalSign(Mat.first.second.second,2);
+  InverseDiagonal(Mat.first.second.first);
+  B=MultiplyMat(Mat.first.second.second,MultiplyMat(Mat.first.second.first,Mat.first.first));
   Matrix C;
-  if(LS.second)
-  {
-    //Si el Booleano no es falso
-    A=LS.first.first.Transpose()*LS.first.first;
-    B=LS.first.first.Transpose()*LS.first.second;
-    C=SolveQR(A,B);
-  }
-  vector<double> Sol;
-  Sol=C.ToVector();
-  return Sol;
-}
-
-double Reconstruct(double x, vector<double> A)
-{
-  double res=0;
-  for(int i=0;i<A.size();i++)
-  {
-    res+=(A[i]*pow(x,i));
-  }
-  return res;
-}
-
-Matrix ToInterpolate(double Init, double End, vector<double> coef)
-{
-  double StepSize=(End-Init)/(double)(1000-1);
-  Matrix S(1000,2);
-  for(int i=0;i<1000;i++)
-  {
-    S.put(i,0,Init+i*StepSize);
-    S.put(i,1,Reconstruct(Init+i*StepSize,coef));
-  }
-  return S;
-}
-
-vector<double> EvalFN(double(*f)(double),vector<double> X)
-{
-  vector<double> F(X.size());
-  for (int i=0;i<X.size();i++)
-  {
-    F[i]=f(X[i]);
-  }
-  return F;
-}
-
-double Constant(double x)
-{
-  return 3.45*sin(x)+2.5*sqrt(exp(x))-3*x;
-}
-
-int main(int argc, char * argv[])
-{
-  //definimos el numero de hilos que vamos a usar
-  //Lo anterior es para paralelización de los métodos
-  //Initrange endrange Npoints degree
-  vector<double> Coef=SolveUsingLS(&Constant,atof(argv[1]),atof(argv[2]),atoi(argv[3]),atoi(argv[4]));
-  Matrix P;
-  P=ToInterpolate(atof(argv[1]),atof(argv[2]),Coef);
-  vector<vector<double>> Cols=P.GetColumns();
-  vector<double> FE=EvalFN(&Cube,Cols[0]);
-  cout<<"||f-fhat||: "<<Norm(Cols[1]-FE)/atof(argv[3])<<endl;
-  P.print_to_text("SalidaInterpol_"+string(argv[3])+"_puntos_"+string(argv[4])+"_grados.txt");
+  C=MultiplyMat(A,B);
+  Matrix D;
+  D=MultiplyMat(B,A);
+  cout<<"Error AB: "<<maxOOD(C)<<endl;
+  cout<<"Error BA: "<<maxOOD(D)<<endl;
+  cout<<"Elemento maximo en Diagonal AB: "<<MaxD(C)<<endl;
+  cout<<"Elemento maximo en Diagonal BA: "<<MaxD(D)<<endl;
   return 0;
 }
