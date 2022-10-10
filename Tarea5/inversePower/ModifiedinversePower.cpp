@@ -448,6 +448,7 @@ void ComputeEigs(Matrix A, int Numvals)
 
 int main(int argv, char* argc[])
 {
+  omp_set_num_threads(MAX_NUM_THREADS);
   Matrix A(argc[1]);
   ComputeEigs(A,atoi(argc[2]));
   return 0;

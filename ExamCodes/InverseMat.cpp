@@ -5,6 +5,9 @@
 #include<string>
 #include<ctime>
 #include<chrono>
+#include<omp.h>
+
+#define MAX_NUM_THREADS 6
 using namespace std;
 
 // Usamos la misma clase matriz que hemos usado a lo largo del curso para
@@ -422,14 +425,14 @@ void GetJustDiagonal(Matrix &M)
 Matrix MultiplyMat(Matrix A, Matrix B)
 {
   Matrix R(A.n,B.m); //La dimensión de la nueva matriz
-  double carry=0.0;
   if(A.m==B.n)
   {
     for(int i=0;i<R.n;i++)
     {
       for(int j=0;j<R.m;j++)
       {
-        carry=0.0;
+        double carry=0.0;
+	#pragma omp parallel for reduction(+:carry)
         for(int k=0;k<A.m;k++) carry+=A.get(i,k)*B.get(k,j);
         R.put(i,j,carry);
       }
@@ -495,6 +498,7 @@ void ChangeOffDiagonalSign(Matrix &BB,int type)
 int main(int argc, char *argv[])
 {
   Matrix A(argv[1]);
+ omp_set_num_threads(MAX_NUM_THREADS);
   pair<pair<Matrix,pair<Matrix,Matrix>>,bool>  Mat=LDUFactorization(A);
   if(!Mat.second)
   {
@@ -505,6 +509,7 @@ int main(int argc, char *argv[])
   ChangeOffDiagonalSign(Mat.first.first,1);
   ChangeOffDiagonalSign(Mat.first.second.second,2);
   InverseDiagonal(Mat.first.second.first);
+	cout<<"Decomposition completed"<<endl;
   B=MultiplyMat(Mat.first.second.second,MultiplyMat(Mat.first.second.first,Mat.first.first));
   Matrix C;
   C=MultiplyMat(A,B);
