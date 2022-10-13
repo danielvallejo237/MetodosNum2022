@@ -13,6 +13,8 @@ using namespace std;
 // Usamos la misma clase matriz que hemos usado a lo largo del curso para
 //poder resolver el método de jacobi
 
+//Multiplicacion de dos matrices descompuestas de LU
+
 class Matrix
 {
     public:
@@ -510,30 +512,31 @@ void ForwardMatrixDiagonalMult(Matrix &D, Matrix &M)
   }
 }
 
+
+Matrix FastUTLTBandedMatrixMult(Matrix L, Matrix U, int bandwidth)
+{
+  //Multiplicación rápida de matrices de la descomposicion de banda LU
+  int resta=bandwidth/2; //El ancho de banda debe de ser un numero impar
+  Matrix M(L.n,U.m); //Matrices cuadradas
+  //La matriz debe de ser simétrica para que dicha multiplicaión funcione
+  for(int i=0;i<M.n;i++)
+  {
+    for(int j=max(0,i-resta);j<=min(M.m,i+resta);j++)
+    {
+      double suma=0;
+      for(int k=max(0,min(i-resta,j-resta));k<=min(j,i);k++) suma+=L.get(i,k)*U.get(k,j);
+      M.put(i,j,suma);
+    }
+  }
+  return M;
+}
+
 int main(int argc, char *argv[])
 {
   Matrix A(argv[1]);
+  Matrix B(argv[2]);
  omp_set_num_threads(MAX_NUM_THREADS);
-  pair<pair<Matrix,pair<Matrix,Matrix>>,bool>  Mat=LDUFactorization(A);
-  if(!Mat.second)
-  {
-    cout<<"Matriz no invertible"<<endl;
-    exit(1);
-  }
-  Matrix B;
-  ChangeOffDiagonalSign(Mat.first.first,1);
-  ChangeOffDiagonalSign(Mat.first.second.second,2);
-  InverseDiagonal(Mat.first.second.first);
-	cout<<"Decomposition completed"<<endl;
-  ForwardMatrixDiagonalMult(Mat.first.second.first,Mat.first.first);
-  B=MultiplyMat(Mat.first.second.second,Mat.first.first);
-  Matrix C;
-  C=MultiplyMat(A,B);
-  Matrix D;
-  D=MultiplyMat(B,A);
-  cout<<"Error AB: "<<maxOOD(C)<<endl;
-  cout<<"Error BA: "<<maxOOD(D)<<endl;
-  cout<<"Elemento maximo en Diagonal AB: "<<MaxD(C)<<endl;
-  cout<<"Elemento maximo en Diagonal BA: "<<MaxD(D)<<endl;
-  return 0;
+ C=FastUTLTBandedMatrixMult(A,B);
+ C.print_content();
+ return 0;
 }
