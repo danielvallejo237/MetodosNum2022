@@ -1,0 +1,30 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 8 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo de interpolacion por interpolacion polinomial de grado m
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+degreeMpol.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+(file)+.txt -> Archivo donde se encuentran la salidas de los puntos interpolados 
+Instrucciones de compilación:
+
+g++ degreeMpol.cpp
+
+Instrucciones de ejecución:
+
+./a.out (a) (b) (grado) (Numero de puntos)

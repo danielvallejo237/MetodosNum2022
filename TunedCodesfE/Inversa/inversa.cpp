@@ -358,10 +358,9 @@ vector<double> CanonicalVector(int N, int ind)
 
 void PutColumn(Matrix &M,vector<double> C, int ind)
 {
-    #pragma omp parallel for
     for(int i=0;i<M.n;i++)
     {
-      M.put(i,ind,C[ind]);
+      M.matrix[ind*M.m+i]=C[i];
     }
 }
 
@@ -387,12 +386,13 @@ Matrix ComputeInverseBanded(Matrix &A, int bandwidth)
 {
     pair<pair<Matrix,Matrix>,bool> P=LUDecompositionBandedMatrix(A,bandwidth);
     Matrix Inversa(A.n,A.m);
-    vector<double> tmp;
+    vector<double> tmp,tmp2;
+    #pragma omp parallel for
     for(int i=0;i<A.m;i++)
     {
       cout<<"Solving system: "<<i<<endl;
-      tmp=SolveLU(P.first.first,P.first.second,CanonicalVector(A.n,i));
-      cout<<"Error: "<<Norma2(A*tmp,CanonicalVector(A.n,i))<<endl;
+      tmp2=CanonicalVector(A.n,i);
+      tmp=SolveLU(P.first.first,P.first.second,tmp2);
       PutColumn(Inversa,tmp,i);
     }
     Inversa.print_to_text("PartialInverse.txt");
@@ -412,9 +412,6 @@ double MaxD(Matrix A)
   for(int i=0;i<A.n;i++) if (fabs(A.get(i,i))>max) max=fabs(A.get(i,i));
   return max;
 }
-
-
-
 int main(int argc, char *argv[])
 {
   omp_set_num_threads(MAX_NUM_THREADS);
@@ -424,11 +421,11 @@ int main(int argc, char *argv[])
   cout<<"Inversa calculada"<<endl;
   Matrix C=A*Inversa;
   cout<<"Pruebas AA^-1"<<endl;
+  cout<<"Elemento maximo fuera de la diagonal AA^-1: "<<maxOOD(C)<<endl;
+  cout<<"Elemento maximo en la diagonal AA^-1: "<<MaxD(C)<<endl;
   Matrix D=Inversa*A;
   cout<<"Pruebas A^-1A"<<endl;
-  cout<<"Elemento maximo fuera de la diagonal AA^-1: "<<maxOOD(C)<<endl;
   cout<<"Elemento maximo fuera de la diagonal A^-1A: "<<maxOOD(D)<<endl;
-  cout<<"Elemento maximo en la diagonal AA^-1: "<<MaxD(C)<<endl;
   cout<<"Elemento maximo en la diagonal A^-1A: "<<MaxD(D)<<endl;
   return 0;
 }
