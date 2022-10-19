@@ -11,7 +11,7 @@
 #include<chrono>
 #include<omp.h>
 
-#define MAX_NUM_THREADS 3
+#define MAX_NUM_THREADS 5
 
 using namespace std;
 
@@ -249,7 +249,7 @@ vector<double> operator * (const vector<double>& v1, double v2)
     return v3;
 }
 
-pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=1e-4,int maxiter=1000)
+pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=5e-5,int maxiter=1000)
 {
    //Esto calcula el valor propio y el vector propio más grande asociado
     vector<double> v1;
@@ -305,7 +305,7 @@ vector<double> get_column(Matrix A, int i)
   return Col;
 }
 
-pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=1e-4,int maxiter=1000)
+pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=5e-5,int maxiter=1000)
 {
   vector<double> v1;
   double lambda=10000000;

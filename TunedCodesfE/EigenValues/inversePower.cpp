@@ -407,7 +407,7 @@ vector<double> SolveLU(Matrix L, Matrix U, vector<double> x)
   return sal;
 }
 //pair<vector<double>,double>
-pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,int maxiter=10000,double TOL=1e-4)
+pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,int maxiter=10000,double TOL=5e-5)
 {
   vector<double> v1;
   double lambda=10000000;
@@ -427,7 +427,7 @@ pair<vector<double>,double> GetFirstInversePower(vector<double> v0,Matrix A,Matr
   return make_pair(v1,lambda);
 }
 
-pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,vector<vector<double>> M,int ind,int maxiter=10000,double TOL=1e-4)
+pair<vector<double>,double> IthInversePower(vector<double> v0,Matrix A,Matrix L, Matrix U,vector<vector<double>> M,int ind,int maxiter=10000,double TOL=5e-5)
 {
   vector<double> v1;
   double lambda=10000000;
