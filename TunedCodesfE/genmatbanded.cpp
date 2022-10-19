@@ -271,7 +271,7 @@ pair<Matrix,Matrix> GenExamMat()
   A.put(2,2,40);
   A.put(2,3,-8);
   A.put(2,4,-4);
-  A.put(3,5,1);
+  A.put(2,5,1);
   b.put(0,0,20);
   b.put(1,0,50);
   b.put(2,0,70);
