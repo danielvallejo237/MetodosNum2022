@@ -255,32 +255,50 @@ class Matrix
 
 pair<Matrix,Matrix> GenExamMat()
 {
-  Matrix A(50,50);
-  Matrix b(50,1);
+  Matrix A(5000,5000);
+  Matrix b(5000,1);
   A.put(0,0,40);
   A.put(0,1,-8);
   A.put(0,2,-4);
+  A.put(0,3,1);
   A.put(1,0,-8);
   A.put(1,1,40);
   A.put(1,2,-8);
   A.put(1,3,-4);
+  A.put(1,4,1);
+  A.put(2,0,-4);
+  A.put(2,1,-8);
+  A.put(2,2,40);
+  A.put(2,3,-8);
+  A.put(2,4,-4);
+  A.put(3,5,1);
   b.put(0,0,20);
   b.put(1,0,50);
-  b.put(48,0,50);
-  b.put(49,0,20);
-  A.put(48,46,-4);
-  A.put(48,47,-8);
-  A.put(48,48,40);
-  A.put(48,49,-8);
-  A.put(49,47,-4);
-  A.put(49,48,-8);
-  A.put(49,49,40);
-  vector<double> c={-4,-8,40,-8,-4};
+  b.put(2,0,70);
+  b.put(4997,0,70);
+  b.put(4998,0,50);
+  b.put(4999,0,20);
+  A.put(4997,4994,1);
+  A.put(4997,4995,-4);
+  A.put(4997,4996,-8);
+  A.put(4997,4997,40);
+  A.put(4997,4998,-8);
+  A.put(4997,4999,-4);
+  A.put(4998,4995,1);
+  A.put(4998,4996,-4);
+  A.put(4998,4997,-8);
+  A.put(4998,4998,40);
+  A.put(4998,4999,-8);
+  A.put(4999,4996,1);
+  A.put(4999,4997,-4);
+  A.put(4999,4998,-8);
+  A.put(4999,4999,40);
+  vector<double> c={1,-4,-8,40,-8,-4,1};
   int counter;
-  for(int i=2;i<48;i++)
+  for(int i=3;i<4997;i++)
   {
     counter=0;
-    for(int j=(i-2);j<=(i+2);j++)
+    for(int j=(i-3);j<=(i+3);j++)
     {
       A.put(i,j,c[counter]);
       counter++;
@@ -293,7 +311,7 @@ pair<Matrix,Matrix> GenExamMat()
 int main()
 {
   pair<Matrix,Matrix> P=GenExamMat();
-  P.first.print_to_text("Aexam.txt");
-  P.second.print_to_text("bexam.txt");
+  P.first.print_to_text("AExamen.txt");
+  P.second.print_to_text("bExamen.txt");
   return 0;
 }

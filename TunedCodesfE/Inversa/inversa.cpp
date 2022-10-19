@@ -417,7 +417,7 @@ int main(int argc, char *argv[])
   omp_set_num_threads(MAX_NUM_THREADS);
   Matrix A(argv[1]);
   Matrix Inversa;
-  Inversa=ComputeInverseBanded(A,5);
+  Inversa=ComputeInverseBanded(A,7);
   cout<<"Inversa calculada"<<endl;
   Matrix C=A*Inversa;
   cout<<"Pruebas AA^-1"<<endl;

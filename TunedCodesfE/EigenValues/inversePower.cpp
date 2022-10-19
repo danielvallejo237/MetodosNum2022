@@ -488,6 +488,6 @@ int main(int argv, char* argc[])
 {
   omp_set_num_threads(MAX_NUM_THREADS);
   Matrix A(argc[1]);
-  ComputeEigs(A,atoi(argc[2]),5);
+  ComputeEigs(A,atoi(argc[2]),7);
   return 0;
 }

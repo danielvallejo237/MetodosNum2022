@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 {
   Matrix A(argv[1]);
   Matrix b(argv[2]);
-  pair<pair<Matrix,Matrix>,bool> P=LUDecompositionBandedMatrix(A,5);
+  pair<pair<Matrix,Matrix>,bool> P=LUDecompositionBandedMatrix(A,7);
   cout<<"Decomposition completed"<<endl;
   if(!P.second) exit(1);
   vector<double> S=SolveLU(P.first.first,P.first.second,b.matrix);
