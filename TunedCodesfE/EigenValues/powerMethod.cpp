@@ -249,7 +249,7 @@ vector<double> operator * (const vector<double>& v1, double v2)
     return v3;
 }
 
-pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=5e-5,int maxiter=1000)
+pair<vector<double>,double> LastEigenvalue(vector<double> v0,Matrix A,double TOL=1e-4,int maxiter=1000)
 {
    //Esto calcula el valor propio y el vector propio más grande asociado
     vector<double> v1;
@@ -305,7 +305,7 @@ vector<double> get_column(Matrix A, int i)
   return Col;
 }
 
-pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=5e-5,int maxiter=1000)
+pair<vector<double>,double> GeiIthEig(vector<double> v0,Matrix A,vector<vector<double>>M,int ind,double TOL=1e-4,int maxiter=1000)
 {
   vector<double> v1;
   double lambda=10000000;
@@ -343,6 +343,17 @@ vector<double> escalarDot(double l, vector<double> a)
   return aux;
 }
 
+void sendMat2Text(string file, const vector<vector<double>> &M)
+{
+  ofstream os{file};
+  os<<M.size()<<" "<<M[0].size()<<endl;
+  for(int i=0;i<M.size();i++)
+  {
+    for(int j=0;j<M[0].size();j++) os<<M[i][j]<<" ";
+    os<<endl;
+  }
+}
+
 void ComputeEigs(Matrix A, int Numvals)
 {
   vector<vector<double>> P(Numvals,vector<double> (A.m));
@@ -361,6 +372,7 @@ void ComputeEigs(Matrix A, int Numvals)
     cout<<"Eigenvalue "<<(i+1)<<": "<<out.second<<endl;
     cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   }
+  sendMat2Text("EvecsBiggest.txt",P);
 }
 
 int main(int argc, char* argv[])

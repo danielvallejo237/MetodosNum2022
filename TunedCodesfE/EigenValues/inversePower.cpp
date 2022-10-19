@@ -463,6 +463,17 @@ vector<double> escalarDot(double l, vector<double> a)
   return aux;
 }
 
+void sendMat2Text(string file, const vector<vector<double>> &M)
+{
+  ofstream os{file};
+  os<<M.size()<<" "<<M[0].size()<<endl;
+  for(int i=0;i<M.size();i++)
+  {
+    for(int j=0;j<M[0].size();j++) os<<M[i][j]<<" ";
+    os<<endl;
+  }
+}
+
 void ComputeEigs(Matrix A, int Numvals,int bandwidth)
 {
   vector<vector<double>> P(Numvals,vector<double> (A.m));
@@ -482,6 +493,7 @@ void ComputeEigs(Matrix A, int Numvals,int bandwidth)
     cout<<"Eigenvalue "<<(i+1)<<": "<<out.second<<endl;
     cout<<"Error ||Ax-lx||: "<<norm2(restaVecs(A*out.first,out.first*out.second))<<endl;
   }
+  sendMat2Text("EvecsSmallest.txt",P);
 }
 
 int main(int argv, char* argc[])
