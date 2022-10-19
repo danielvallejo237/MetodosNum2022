@@ -357,6 +357,44 @@ pair<pair<Matrix,Matrix>,bool> LUDecomposition(Matrix &A)
     return make_pair(make_pair(L,U),true); //La factorización se hizo de forma correcta
 }
 
+pair<pair<Matrix,Matrix>,bool> LUDecompositionBandedMatrix(Matrix &A, int bandwidth)
+{
+    /*Recibimos una matriz y la descomponemos en dos matrices que satisfacen que una es triangular superior
+     y la otra es triangular inferior*/
+    vector<double> l1(A.n*A.m,0),u1(A.n*A.m,0);
+    Matrix L(l1,A.n,A.m), U(u1,A.n,A.m);
+    int resta=bandwidth/2;
+    //Necesitamos definir que todos los elementos de la diagonal de L sean 1's, en este caso tenemos lo siguiente
+    for(int i=0;i<A.n;i++) L.matrix[i*A.m+i]=1;
+    U.matrix[0]=A.matrix[0]; //Inicialización de la descomposicion LU
+    if(!U.matrix[0]) return make_pair(make_pair(L,U),false); //No es factorizable
+    //Paso 2 para el primer renglón de U y la primera columna de L hacemos la siguiente inicialización
+    for(int i=1;i<=resta;i++)U.matrix[i]=A.matrix[i]/L.matrix[0],L.matrix[i*A.m]=A.matrix[i*A.m]/U.matrix[0];
+    for(int i=1;i<A.n;i++)
+    {
+        double value=0;
+        for(int k=max(0,i-resta);k<i;k++) value+=L.matrix[i*L.m+k]*U.matrix[k*U.m+i];
+        U.matrix[i*U.m+i]=A.matrix[i*U.m+i]-value; //Para las diagonales de la matriz U
+        if(!U.matrix[i*U.m+i]) return make_pair(make_pair(L,U),false);
+        if (i<A.n-1)
+        {
+            for(int j=i+1;j<min(A.m,i+resta+1);j++)
+            {
+                double value1,value2;
+                value1=0,value2=0; //Inicialización con el neutro aditivo de los numeros
+                for(int k=max(0,i-resta);k<i;k++)
+                {
+                    value1+=L.matrix[i*L.m+k]*U.matrix[k*U.m+j];
+                    value2+=L.matrix[j*L.m+k]*U.matrix[k*U.m+i];
+                }
+                U.matrix[i*U.m+j]=(1/L.matrix[i*L.m+i])*(A.matrix[i*A.m+j]-value1);
+                L.matrix[j*L.m+i]=(1/U.matrix[i*U.m+i])*(A.matrix[j*A.m+i]-value2);
+            }
+        }
+    }
+    return make_pair(make_pair(L,U),true); //La factorización se hizo de forma correcta
+}
+
 vector<double> SolveLU(Matrix L, Matrix U, vector<double> x)
 {
   Matrix tmp(x,x.size(),1);
@@ -425,11 +463,11 @@ vector<double> escalarDot(double l, vector<double> a)
   return aux;
 }
 
-void ComputeEigs(Matrix A, int Numvals)
+void ComputeEigs(Matrix A, int Numvals,int bandwidth)
 {
   vector<vector<double>> P(Numvals,vector<double> (A.m));
   vector<double> eigs(Numvals);
-  pair<pair<Matrix,Matrix>,bool> LU=LUDecomposition(A);
+  pair<pair<Matrix,Matrix>,bool> LU=LUDecompositionBandedMatrix(A,bandwidth);
   pair<vector<double>,double> out=GetFirstInversePower(get_column(A,0),A,LU.first.first,LU.first.second);
   P[0]=out.first;
   vector<double> vec;
@@ -450,6 +488,6 @@ int main(int argv, char* argc[])
 {
   omp_set_num_threads(MAX_NUM_THREADS);
   Matrix A(argc[1]);
-  ComputeEigs(A,atoi(argc[2]));
+  ComputeEigs(A,atoi(argc[2]),5);
   return 0;
 }

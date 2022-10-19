@@ -386,10 +386,10 @@ Matrix ComputeInverseBanded(Matrix &A, int bandwidth)
 {
     pair<pair<Matrix,Matrix>,bool> P=LUDecompositionBandedMatrix(A,bandwidth);
     Matrix Inversa(A.n,A.m);
-    vector<double> tmp,tmp2;
     #pragma omp parallel for
     for(int i=0;i<A.m;i++)
     {
+    	vector<double> tmp,tmp2;
       cout<<"Solving system: "<<i<<endl;
       tmp2=CanonicalVector(A.n,i);
       tmp=SolveLU(P.first.first,P.first.second,tmp2);
