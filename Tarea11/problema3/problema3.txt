@@ -1,0 +1,34 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 11 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo de newton cotes de grado 2 con extrapolación de richardson
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+problema3.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+
+Instrucciones de compilación:
+
+g++ problema3.cpp ../fparser/fparser.cc
+
+Instrucciones de ejecución:
+
+./a.out (f) (a) (b)
+
+f<-función a integrar
+a<-Inicio de intervalo
+b<-fin de intervalo
