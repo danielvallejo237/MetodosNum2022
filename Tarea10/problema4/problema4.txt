@@ -1,0 +1,36 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 10 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo de integración por Monte Carlo para integrales dobles
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+problema4.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+(file)+.txt
+Instrucciones de compilación:
+
+g++ problema4.cpp fparser/fparser.cc -fopenmp
+
+Instrucciones de ejecución:
+
+./a.out (f) (a) (b) (c) (d)
+
+a<-Inicio de intervaloX
+b<-fin de intervaloX
+c<-Inicio de intervaloY
+d<-fin de intervaloY
+f<-funcion a integrar

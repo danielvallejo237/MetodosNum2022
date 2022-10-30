@@ -1,0 +1,34 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 10 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algortimo de integración por Monte Carlo para integrales simples
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguietes características:
+
+OS: Ubuntu 22.04 LTS
+Gnome Version: 42.2
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+problema3.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes 
+(file)+.txt
+Instrucciones de compilación:
+
+g++ problema3.cpp fparser/fparser.cc -fopenmp
+
+Instrucciones de ejecución:
+
+./a.out (f) (a) (b)
+
+a<-Inicio de intervalo
+b<-fin de intervalo
+f<-funcion a integrar
