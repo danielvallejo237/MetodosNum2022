@@ -1,0 +1,39 @@
+###########################################################
+
+CÓDIGO DE LA TAREA 13 DE MÉTODOS NUMÉRICOS
+
+@Author Daniel Vallejo Aldana (danielvallejo237 on Github)
+
+##########################################################
+
+Implementación del algoritmo con diferentes tipos de diferencias finitas
+
+Especificaciones técnicas:
+
+El programa fue corrido en una máquina con las siguientes características:
+
+Dispositivo: MacBook Pro 2022 M2 chip
+OS: macOS Ventura
+g++ version: 11.2.0
+
+
+Archivos generados:
+
+finitediff.cpp -> Archivo donde se encuentra el main del programa así como todas las funciones correspondientes
+(file)+.txt
+Instrucciones de compilación:
+
+g++ finitediff.cpp fparser/fparser.cc
+
+Instrucciones de ejecución:
+
+./a.out (f) (f1) (f2) (f3) (a) (b) (c) (d)
+
+a<-Inicio de intervaloX
+b<-fin de intervaloX
+c<-h
+d<-tamaño de la discretizacion
+f<-funcion a derivar
+f1<-primera derivada
+f2<-segunda derivada
+f3<-tercera derivada
